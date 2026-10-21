@@ -1,72 +1,157 @@
 import React, { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, Compass, ExternalLink, Ghost, Headphones, Heart, Info, Layers3, MoveRight, Search, Sparkles, Users, WandSparkles } from "lucide-react";
+import { Archive, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Compass, ExternalLink, Filter, Ghost, Headphones, Info, Layers3, Search, Sparkles, Users, X, ZoomIn, ZoomOut, Gamepad2, Globe2, Music2, ListFilter } from "lucide-react";
+import { MILESTONES, CULTURE_ERAS, CATEGORIES } from "./cultureData.js";
 import "./timeline.css";
 
-// Historical culture milestones, not a measurement of Tumblr tag popularity.
-// type distinguishes dated origin/release events from broader viral moments.
-// All outbound historical source links are attached to their own records.
-export const CULTURE_EVENTS = [
-  { id:"homestuck", date:"2009-04-13", label:"Homestuck begins", category:"Fandom", type:"Origin", icon:"HS", description:"Andrew Hussie's webcomic begins its long-running adventure. Tumblr's Homestuck fandom would grow substantially over the following years.", tags:["homestuck"], source:"https://www.homestuck.com/", sourceLabel:"Homestuck official site" },
-  { id:"slenderman", date:"2009-06-10", label:"Slender Man is created", category:"Horror", type:"Origin", icon:"SM", description:"Victor Surge introduces Slender Man on the Something Awful forums. This is the character's creation date, not the date of a verified Tumblr popularity peak.", tags:["slenderman","creepypasta"], source:"https://knowyourmeme.com/memes/slender-man", sourceLabel:"Know Your Meme" },
-  { id:"marblehornets", date:"2009-06-20", label:"Marble Hornets begins", category:"Horror", type:"Origin", icon:"MH", description:"The first Marble Hornets uploads help transform the Slender Man myth into found-footage internet horror.", tags:["marblehornets","slenderman"], source:"https://marblehornets.wikidot.com/comprehensive-timeline", sourceLabel:"Marble Hornets chronology" },
-  { id:"mlp", date:"2010-10-10", label:"Friendship Is Magic debuts", category:"Fandom", type:"Premiere", icon:"MLP", description:"My Little Pony: Friendship Is Magic premieres. Its online fan communities later become a recognizable part of early-2010s fandom culture.", tags:["mlp","my little pony"], source:"https://en.wikipedia.org/wiki/My_Little_Pony:_Friendship_Is_Magic", sourceLabel:"Series history" },
-  { id:"nyancat", date:"2011-04-02", label:"Pop Tart Cat / Nyan Cat", category:"Memes", type:"Origin & spread", icon:"NY", description:"Christopher Torres posts his Pop Tart Cat animation on April 2; it is paired with music in a video on April 5 and rapidly spreads across the web, including Tumblr.", tags:["nyan cat","nyancat"], source:"https://knowyourmeme.com/memes/nyan-cat", sourceLabel:"Know Your Meme" },
-  { id:"slendergame", date:"2012-06-26", label:"Slender: The Eight Pages", category:"Horror", type:"Release", icon:"8P", description:"The free horror game brings Slender Man to a much wider gaming audience in 2012, reinforcing the surrounding creepypasta and fan-art wave.", tags:["slenderman","creepypasta"], source:"https://www.gamespot.com/games/slender/", sourceLabel:"GameSpot release record" },
-  { id:"gangnam", date:"2012-07-15", label:"Gangnam Style arrives", category:"Memes", type:"Release", icon:"GS", description:"PSY releases Gangnam Style. Its music video becomes an international viral sensation later in 2012; this marker is its release, not a Tumblr-specific peak.", tags:["gangnam style"], source:"https://en.wikipedia.org/wiki/Gangnam_Style", sourceLabel:"Single history" },
-  { id:"harlem", date:"2013-02-10", label:"Harlem Shake goes viral", category:"Memes", type:"Viral wave", icon:"HS", description:"Short Harlem Shake dance videos explode across YouTube and the wider internet in February 2013. The exact day shown is a reference point within that month, not a universal peak date.", tags:["harlem shake"], source:"https://www.guinnessworldrecords.com/world-records/107612-largest-harlem-shake", sourceLabel:"Guinness World Records" },
-  { id:"doge", date:"2013-11-01", label:"Doge everywhere", category:"Memes", type:"Approximate wave", icon:"DG", description:"Shiba Inu reaction pictures and colorful Comic Sans captions become prominent in 2013, with Tumblr among the communities associated with the format. November is an approximate period marker.", tags:["doge","shiba inu"], source:"https://knowyourmeme.com/memes/doge", sourceLabel:"Know Your Meme" },
-  { id:"fnaf", date:"2014-08-08", label:"Five Nights at Freddy's", category:"Horror", type:"Release", icon:"FNaF", description:"Scott Cawthon's horror game arrives in August 2014 and quickly generates a large online fan community. This is a game release, not a measured Tumblr surge.", tags:["fnaf","five nights at freddys"], source:"https://www.gamespot.com/games/five-nights-at-freddys/", sourceLabel:"GameSpot release record" }
-];
-export const CULTURE_ERAS = [
-  { id:"scene", name:"Scene / MySpace crossover", start:"2009-01", end:"2012-12", category:"Music", description:"Broad approximate cultural overlap, not a measured popularity trend." },
-  { id:"creepypasta", name:"Creepypasta wave", start:"2010-01", end:"2013-12", category:"Horror", description:"A broad descriptive period rather than a precise popularity peak." },
-  { id:"fandom", name:"Fandom / ask-blog culture", start:"2011-01", end:"2014-12", category:"Fandom", description:"A broad descriptive period, not a measured platform statistic." }
-];
-const START=2009, END=2015, MAX=(END-START+1)*12-1;
-const monthIndex=(date)=>Math.max(0,Math.min(MAX,((Number(date.slice(0,4))-START)*12 + Number(date.slice(5,7))-1)));
-const dateFromIndex=(idx)=>{const yr=START+Math.floor(idx/12);const mo=idx%12;return new Date(Date.UTC(yr,mo+1,0)).toISOString().slice(0,10)};
-const pretty=(date,options={month:"long",year:"numeric"})=>new Date(date+"T12:00:00Z").toLocaleDateString("en-US",{...options,timeZone:"UTC"});
-const iconFor={Horror:Ghost,Memes:Sparkles,Fandom:Users,Music:Headphones};
-const categoryOptions=["All","Horror","Memes","Fandom","Music"];
-function restore(){try{return localStorage.getItem("tm-culture-historian")==="true"}catch{return false}}
+const START = 2009, END = 2015, LAST = (END - START + 1) * 12 - 1;
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const iconFor = { Horror:Ghost, Memes:Sparkles, Fandom:Users, Music:Headphones, Games:Gamepad2, Web:Globe2 };
+const labelDate = (event) => {
+  const parts = event.date.split("-").map(Number);
+  const t = new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+  return t.toLocaleDateString("en-US", {month:"long",day:event.precision==="month"?undefined:"numeric",year:"numeric",timeZone:"UTC"});
+};
+const endOfMonth = (year,monthIndex) => new Date(Date.UTC(year,monthIndex+1,0)).toISOString().slice(0,10);
+const monthNumber = date => Math.max(0,Math.min(LAST,(Number(date.slice(0,4))-START)*12+Number(date.slice(5,7))-1));
+const fmtMonth = date => new Date(date+"T12:00:00Z").toLocaleDateString("en-US",{month:"long",year:"numeric",timeZone:"UTC"});
+function savedBoolean(key) {try{return localStorage.getItem(key)==="true"}catch{return false}}
+function grouped(events,mode,year){
+  const map=new Map();
+  for(const event of events){
+    const key=mode==="overview"?event.date.slice(0,4):mode==="year"?event.date.slice(5,7):event.date;
+    if(mode==="year"&&!event.date.startsWith(String(year)))continue;
+    if(mode==="month"&&!event.date.startsWith(String(year)))continue;
+    if(!map.has(key))map.set(key,[]);
+    map.get(key).push(event);
+  }
+  return map;
+}
 export default function CultureTimeline({date,onDateChange,onExplore}){
-  const [category,setCategory]=useState("All");
-  const [historian,setHistorian]=useState(restore);
-  const [selected,setSelected]=useState("slendergame");
-  const currentIndex=monthIndex(date);
-  const eventList=useMemo(()=>CULTURE_EVENTS.filter(e=>(category==="All"||e.category===category)&&(historian||e.date<=date)),[category,historian,date]);
-  const focused=eventList.find(e=>e.id===selected) || eventList[eventList.length-1] || null;
-  const setHistoric=(value)=>{setHistorian(value);try{localStorage.setItem("tm-culture-historian",String(value))}catch{}};
-  const jump=(event)=>{onDateChange(event.date);setSelected(event.id)};
-  const step=(amount)=>onDateChange(dateFromIndex(Math.max(0,Math.min(MAX,currentIndex+amount))));
-  const progress=(currentIndex/MAX)*100;
-  const visibleEras=CULTURE_ERAS.filter(e=>(category==="All"||e.category===category)&&(historian||e.start<=date.slice(0,7))).map(e=>({
-    ...e,startIndex:monthIndex(e.start+"-01"),endIndex:historian?monthIndex(e.end+"-01"):Math.min(currentIndex,monthIndex(e.end+"-01"))
-  }));
-  const FocusIcon=focused?(iconFor[focused.category]||WandSparkles):Info;
-  return <section className="culture-timeline" aria-label="Internet culture timeline">
-    <div className="culture-top">
-      <div><div className="culture-eyebrow"><Clock3 size={13}/> THE CULTURE CLOCK <span>· 2009–2015</span></div><h2>Travel through internet history<span className="culture-star">✳</span></h2><p>Memes, horror, music and fandoms from the early web.</p></div>
-      <button className={"culture-mode"+(historian?" is-on":"")} onClick={()=>setHistoric(!historian)} title="Historian mode reveals later events even while browsing an earlier year"><Compass size={15}/>{historian?"Historian mode: on":"No future spoilers"}</button>
-    </div>
-    <div className="culture-filters" aria-label="Timeline event categories">{categoryOptions.map(option=><button key={option} className={category===option?"active":""} onClick={()=>{setCategory(option);setSelected(null)}}>{option}</button>)}</div>
-    <div className="culture-traveler"><button aria-label="Previous month" onClick={()=>step(-1)} disabled={currentIndex===0}><ChevronLeft size={19}/></button><div><span>CURRENT DESTINATION</span><strong>{pretty(date,{month:"long",year:"numeric"})}</strong></div><button aria-label="Next month" onClick={()=>step(1)} disabled={currentIndex===MAX}><ChevronRight size={19}/></button></div>
-    <div className="culture-axis">
-      <div className="culture-rail">
-        <div className="culture-track"><div className="culture-track-fill" style={{width:progress+"%"}}/></div>
-        <div className="culture-markers">
-          {eventList.map((e,i)=>{const left=monthIndex(e.date)/MAX*100; const Icon=iconFor[e.category]||Sparkles;return <button key={e.id} type="button" aria-label={e.label+" — "+e.date} title={e.label+" · "+e.date} className={"culture-marker "+e.category.toLowerCase()+(focused&&focused.id===e.id?" is-selected":"")} style={{left:left+"%",bottom:((i%2)*18+5)+"px"}} onClick={()=>setSelected(e.id)}><Icon size={12}/></button>})}
-        </div>
-        <input type="range" min={0} max={MAX} step={1} value={currentIndex} onChange={e=>onDateChange(dateFromIndex(Number(e.target.value)))} aria-label="Travel to historical month" className="culture-range" style={{"--travel-progress":progress+"%"}}/>
+  const [zoom,setZoom] = useState("overview");
+  const [category,setCategory] = useState("All");
+  const [query,setQuery] = useState("");
+  const [historian,setHistorian] = useState(()=>savedBoolean("tm-culture-historian"));
+  const [selectedId,setSelectedId] = useState("invadercon2");
+  const [openCluster,setOpenCluster] = useState(null);
+  const activeYear = Math.max(START, Math.min(END, Number(date.slice(0,4))));
+  const activeMonth = Math.max(1, Math.min(12, Number(date.slice(5,7))));
+  const timeIndex = monthNumber(date);
+  const visible = useMemo(()=>MILESTONES.filter(e=>
+    (historian||e.date<=date) &&
+    (category==="All"||e.category===category) &&
+    (!query||[e.title,e.category,e.kind,e.summary,...e.tags].join(" ").toLowerCase().includes(query.toLowerCase()))
+  ),[historian,date,category,query]);
+  const overview = useMemo(()=>grouped(visible,"overview"),[visible]);
+  const yearly = useMemo(()=>grouped(visible,"year",activeYear),[visible,activeYear]);
+  const monthlyEvents = visible.filter(e=>e.date.slice(0,7)===date.slice(0,7));
+  const featured=visible.find(e=>e.id===selectedId)||visible[visible.length-1]||null;
+  const neighbors=featured?featured.related.map(id=>MILESTONES.find(m=>m.id===id)).filter(e=>e&&(historian||e.date<=date)):[]; 
+  const eraList=CULTURE_ERAS.filter(e=>(category==="All"||e.category===category)&&(historian||e.start<=date.slice(0,7)));
+  const setHist=value=>{setHistorian(value);try{localStorage.setItem("tm-culture-historian",String(value))}catch{}};
+  const changeDate=next=>{onDateChange(next);setOpenCluster(null)};
+  const chooseYear=year=>{changeDate(endOfMonth(year,11));setZoom("year")};
+  const chooseMonth=monthIndex=>{changeDate(endOfMonth(activeYear,monthIndex));setZoom("month")};
+  const jump=event=>{changeDate(event.precision==="month"?endOfMonth(Number(event.date.slice(0,4)),Number(event.date.slice(5,7))-1):event.date);setSelectedId(event.id)};
+  const stepMonth=amount=>{const i=Math.max(0,Math.min(LAST,timeIndex+amount));changeDate(endOfMonth(START+Math.floor(i/12),i%12))};
+  const showEvent=event=>{setSelectedId(event.id);setOpenCluster(null)};
+  const followRelated=event=>{setCategory("All");setQuery("");setSelectedId(event.id);setZoom("year");if(event.date>date)changeDate(event.precision==="month"?endOfMonth(+event.date.slice(0,4),+event.date.slice(5,7)-1):event.date)};
+  const selectedCluster=openCluster?overview.get(openCluster)||[]:[];
+  const daysOfMonth=new Date(Date.UTC(activeYear,activeMonth,0)).getUTCDate();
+  return <section className="culture-v2" aria-label="Internet culture timeline">
+    <header className="ct-head">
+      <div>
+        <div className="ct-kicker"><Clock3 size={13}/> CULTURE CLOCK <span>· A LIVING INTERNET ARCHIVE</span></div>
+        <h2>The internet, year by year <span aria-hidden="true">✳</span></h2>
+        <p>Explore memes, cartoons, creepypasta, fandoms and scene culture.</p>
       </div>
-      <div className="culture-years">{[2009,2010,2011,2012,2013,2014,2015].map(y=><button key={y} className={Number(date.slice(0,4))===y?"active":""} onClick={()=>onDateChange(y+"-12-31")}>{y}</button>)}</div>
+      <button type="button" className={"ct-historian"+(historian?" active":"")} onClick={()=>setHist(!historian)} title="Reveal milestone entries beyond your current historical date">
+        <Compass size={14}/>{historian?"Historian: on":"No future spoilers"}
+      </button>
+    </header>
+    <div className="ct-controls">
+      <div className="ct-zoom" role="group" aria-label="Timeline zoom level">
+        {[["overview","Overview"],["year","Year"],["month","Month"]].map(([key,label])=><button type="button" key={key} className={zoom===key?"chosen":""} onClick={()=>{setZoom(key);setOpenCluster(null)}}>{label}</button>)}
+      </div>
+      <div className="ct-counter">{visible.length} / {MILESTONES.length} milestones</div>
     </div>
-    <div className="culture-era-heading"><Layers3 size={13}/> CULTURAL ERAS <span>approximate, not Tumblr analytics</span></div>
-    <div className="culture-eras">
-      {visibleEras.map(e=><div className={"culture-era "+e.category.toLowerCase()} key={e.id} title={e.description}><div className="culture-era-track"><span style={{left:(e.startIndex/MAX*100)+"%",width:((e.endIndex-e.startIndex)/MAX*100)+"%"}}/></div><span>{e.name}</span></div>)}
-      {visibleEras.length===0&&<small>No broad era bands for this filter.</small>}
+    <div className="ct-filterbar">
+      <div className="ct-categories" aria-label="Filter milestones">
+        {CATEGORIES.map(c=><button type="button" className={category===c?"chosen":""} key={c} onClick={()=>{setCategory(c);setOpenCluster(null)}}>{c}</button>)}
+      </div>
+      <label className="ct-search"><Search size={14}/><input type="search" value={query} onChange={e=>{setQuery(e.target.value);setOpenCluster(null)}} placeholder="Search milestones..." aria-label="Search historical milestones"/></label>
     </div>
-    {focused?<div className="culture-feature"><div className={"culture-feature-symbol "+focused.category.toLowerCase()}><FocusIcon size={27}/><small>{focused.icon}</small></div><div className="culture-feature-body"><div className="culture-feature-meta">{pretty(focused.date,{month:"short",day:"numeric",year:"numeric"})} <span>·</span> {focused.category} <span>·</span> {focused.type}</div><h3>{focused.label}</h3><p>{focused.description}</p><div className="culture-feature-actions"><button className="culture-primary" onClick={()=>jump(focused)}><CalendarDays size={14}/> Jump to this date</button><button onClick={()=>onExplore(focused)}><Search size={14}/> Explore #{focused.tags[0].replace(/\s/g,"")}</button><a target="_blank" rel="noreferrer" href={focused.source} title={"Read the historical source: "+focused.sourceLabel}><ExternalLink size={14}/> Source</a></div></div></div>:<div className="culture-none"><Info size={17}/> No {category.toLowerCase()} milestones before this date. Travel forward or enable Historian mode.</div>}
-    <div className="culture-bottom"><span><Info size={12}/> Markers describe wider internet culture; none claim a measured Tumblr trend peak.</span><span>{eventList.length} visible markers</span></div>
-  </section>
+    <div className="ct-datebar">
+      <button type="button" title="Previous month" aria-label="Previous month" onClick={()=>stepMonth(-1)} disabled={timeIndex===0}><ChevronLeft size={19}/></button>
+      <div><small>YOUR TIME MACHINE IS IN</small><strong>{fmtMonth(date)}</strong></div>
+      <button type="button" title="Next month" aria-label="Next month" onClick={()=>stepMonth(1)} disabled={timeIndex===LAST}><ChevronRight size={19}/></button>
+    </div>
+    <div className="ct-scrubber">
+      <input aria-label="Travel through months from 2009 to 2015" type="range" min="0" max={LAST} step="1" value={timeIndex} onChange={e=>{let n=+e.target.value;changeDate(endOfMonth(START+Math.floor(n/12),n%12))}}/>
+      <div className="ct-year-axis">{Array.from({length:END-START+1},(_,i)=>START+i).map(y=><button key={y} type="button" className={activeYear===y?"active":""} onClick={()=>changeDate(endOfMonth(y,11))}>{y}</button>)}</div>
+    </div>
+    {zoom==="overview"&&<div className="ct-overview" aria-label="Clustered events by year">
+      {Array.from({length:END-START+1},(_,i)=>START+i).map(y=>{
+        const list=overview.get(String(y))||[];
+        const beyond=!historian&&y>+date.slice(0,4);
+        const isOpen=openCluster===String(y);
+        return <button type="button" key={y} className={"ct-year-tile"+(activeYear===y?" selected":"")+(isOpen?" opened":"")+(beyond?" future":"")} onClick={()=>{if(beyond){chooseYear(y)}else setOpenCluster(isOpen?null:String(y))}}>
+          <span className="ct-year-number">{y}</span>
+          <span className="ct-density" aria-hidden="true">{[...Array(5)].map((_,i)=><i key={i} className={i<Math.ceil(list.length/3)?"lit":""}/>)}</span>
+          <span className="ct-count">{beyond?"Explore year":list.length===1?"1 milestone":list.length+" milestones"}</span>
+          <span className="ct-mini">{beyond?"Future hidden":list.length?list[Math.floor(list.length/2)].title:"No markers yet"}</span>
+          <span className="ct-tile-more">{beyond?"Travel →":isOpen?"Close −":"Open +"}</span>
+        </button>;
+      })}
+    </div>}
+    {zoom==="overview"&&openCluster&&<div className="ct-cluster-panel">
+      <div className="ct-panel-top"><strong>{openCluster} · {selectedCluster.length} milestones</strong><div><button type="button" onClick={()=>chooseYear(+openCluster)}>Zoom into year <ZoomIn size={13}/></button><button type="button" aria-label="Close year cluster" onClick={()=>setOpenCluster(null)}><X size={16}/></button></div></div>
+      <div className="ct-cluster-list">{selectedCluster.map(e=><button key={e.id} type="button" onClick={()=>showEvent(e)} className={featured?.id===e.id?"selected":""}><span>{labelDate(e)}</span><strong>{e.title}</strong><i className={"ct-pin "+e.category.toLowerCase()}/></button>)}</div>
+    </div>}
+    {zoom==="year"&&<div className="ct-year-zoom">
+      <div className="ct-panel-top"><strong>Inside {activeYear}</strong><span>Choose a month to explore its events</span></div>
+      <div className="ct-month-grid">{MONTHS.map((m,i)=>{
+        const list=yearly.get(String(i+1).padStart(2,"0"))||[];
+        const future=!historian&&(activeYear>+date.slice(0,4)||(activeYear===+date.slice(0,4)&&i+1>+date.slice(5,7)));
+        return <button key={m} type="button" onClick={()=>chooseMonth(i)} className={(activeMonth===i+1?"selected ":"")+(future?"future":"")}>
+          <span>{m}</span>
+          <b>{future?"—":list.length}</b>
+          <small>{future?"Not yet":list.length===1?"event":"events"}</small>
+        </button>;
+      })}</div>
+      <div className="ct-year-zoom-footer"><button type="button" onClick={()=>{setZoom("overview");setOpenCluster(null)}}><ArrowLeft size={14}/> All years</button><button type="button" onClick={()=>setZoom("month")}>Open {MONTHS[activeMonth-1]} <ArrowRight size={14}/></button></div>
+    </div>}
+    {zoom==="month"&&<div className="ct-month-zoom">
+      <div className="ct-panel-top"><strong>{MONTHS[activeMonth-1]} {activeYear}</strong><button type="button" onClick={()=>setZoom("year")}><ArrowLeft size={14}/> Year overview</button></div>
+      <div className="ct-day-line">
+        <span>1</span><div className="ct-day-track">
+          {monthlyEvents.map(e=><button type="button" key={e.id} onClick={()=>showEvent(e)} title={e.title} aria-label={"Select "+e.title} style={{left:((Number(e.date.slice(8,10))-1)/(daysOfMonth-1)*100)+"%"}} className={e.category.toLowerCase()}/>)}
+        </div><span>{daysOfMonth}</span>
+      </div>
+      {monthlyEvents.length?<div className="ct-month-events">{monthlyEvents.map(e=><button type="button" key={e.id} onClick={()=>showEvent(e)} className={featured?.id===e.id?"selected":""}><span>{labelDate(e)} · {e.category}</span><strong>{e.title}</strong><ArrowRight size={14}/></button>)}</div>:<div className="ct-empty">No documented milestones in this category and month. Change the filters or try another month.</div>}
+    </div>}
+    {query&&visible.length===0&&<div className="ct-empty">No milestones match “{query}” in the currently visible history. Try another filter or enable Historian mode.</div>}
+    <div className="ct-era-head"><Layers3 size={14}/> CULTURAL ERAS <small>Broad illustrative periods, not popularity statistics</small></div>
+    <div className="ct-eras">{eraList.map(era=>{
+      const start=Math.max(0,monthNumber(era.start+"-01")),end=Math.max(start,Math.min(historian?LAST:timeIndex,monthNumber(era.end+"-01")));
+      return <div key={era.id} className="ct-era" title={era.description}><div className="ct-era-track"><span className={era.category.toLowerCase()} style={{left:(start/LAST*100)+"%",width:(Math.max(1,end-start)/LAST*100)+"%"}}/></div><span>{era.title}</span></div>
+    })}</div>
+    <div className="ct-feature-heading"><Sparkles size={14}/> SELECTED MOMENT <small>{featured?"Source-linked milestone":"Nothing visible at this date"}</small></div>
+    {featured?<div className="ct-feature">
+      <div className={"ct-feature-emblem "+featured.category.toLowerCase()}>{React.createElement(iconFor[featured.category]||Sparkles,{size:28})}</div>
+      <div className="ct-feature-copy">
+        <div className="ct-feature-meta">{labelDate(featured)} · {featured.category} · {featured.kind}</div>
+        <h3>{featured.title}</h3>
+        <p>{featured.summary}</p>
+        <div className="ct-feature-tags">{featured.tags.map(t=><span key={t}>#{t.replace(/\s/g,"")}</span>)}</div>
+        <div className="ct-feature-actions">
+          <button type="button" className="primary" onClick={()=>jump(featured)}><CalendarDays size={14}/> Jump to date</button>
+          <button type="button" onClick={()=>{jump(featured);onExplore({...featured,tags:featured.tags})}}><Search size={14}/> Browse archive</button>
+          <a href={featured.source} target="_blank" rel="noopener noreferrer"><ExternalLink size={14}/> Historical source</a>
+        </div>
+        <div className="ct-source-note">The archive is still a demo; browsing a historical tag may show no posts until real Tumblr imports are added.</div>
+      </div>
+    </div>:<div className="ct-empty">No milestones available. Try an earlier year, a different category, or Historian mode.</div>}
+    {!!neighbors.length&&<div className="ct-related"><div className="ct-related-title"><Compass size={14}/> CULTURE CONSTELLATION <span>Curated connections</span></div><div className="ct-related-grid">{neighbors.slice(0,4).map(e=><button type="button" key={e.id} onClick={()=>followRelated(e)}><i className={"ct-pin "+e.category.toLowerCase()}/><span>{e.title}<small>{e.category} · {e.date.slice(0,4)}</small></span><ArrowRight size={13}/></button>)}</div></div>}
+    <div className="ct-foot"><Info size={13}/> {MILESTONES.length} researched culture markers. Exact releases and approximate waves are labeled separately. No measured Tumblr popularity claims.</div>
+  </section>;
 }
