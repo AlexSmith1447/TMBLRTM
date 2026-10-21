@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from "react";
-import {AlertCircle,ArrowUpRight,Bookmark,Calendar,Camera,Check,ChevronDown,ExternalLink,Heart,Image as ImageIcon,Loader2,RefreshCw,Search,SlidersHorizontal,Tag,Wifi,WifiOff,Plus,Repeat2,ArrowRight,FolderOpen,LockKeyhole} from "lucide-react";
+import {AlertCircle,Archive,ArrowUpRight,Bookmark,Calendar,Camera,Check,ChevronDown,ExternalLink,Heart,Image as ImageIcon,Loader2,RefreshCw,Search,SlidersHorizontal,Tag,Wifi,WifiOff,Plus,Repeat2,ArrowRight,FolderOpen,LockKeyhole} from "lucide-react";
 import "./live.css";
 
 const SAMPLES=[
@@ -37,7 +37,7 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
   </article>;
 }
 
-export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[]}){
+export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],initialType="all"}){
   const [configured,setConfigured]=useState(null);
   const [source,setSource]=useState("blog");
   const [blog,setBlog]=useState("staff");
@@ -48,7 +48,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [cursor,setCursor]=useState({offset:0,before:null,hasMore:false});
-  const [type,setType]=useState("all");
+  const [type,setType]=useState(initialType);
   const [query,setQuery]=useState("");
   const [mode,setMode]=useState("live");
   const [range,setRange]=useState("all");
@@ -62,6 +62,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   useEffect(()=>{localStorage.setItem("tm2-imported-blogs",JSON.stringify(archiveNames))},[archiveNames]);
   useEffect(()=>{if(initialTag){setTag(initialTag);setTagDraft(initialTag);setSource("tag");setMode("live")}else if(initialBlog){setBlog(initialBlog);setBlogDraft(initialBlog);setSource("blog");setMode("live")}else if(tab==="explore"){setSource("tag")}},[initialTag,initialBlog,tab]);
   const effectiveMode=mode==="live"&&configured?"live":"sample";
+  useEffect(()=>{setType(initialType)},[initialType]);
   const fetchAbort=useRef(null);
   const currentSource=source==="blog"?"blog:"+blog:"tag:"+tag;
   const requestPage=async ({append=false,signal}={})=>{
