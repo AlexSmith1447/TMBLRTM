@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node scripts/validate-milestones.mjs"
+    "test": "node scripts/validate-milestones.mjs && node scripts/test-tumblr-api.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
