@@ -14,5 +14,7 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Validate historical milestones
+        run: npm test
       - name: Build production site
         run: npm run build
