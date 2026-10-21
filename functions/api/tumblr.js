@@ -3,7 +3,7 @@
 // This function never sends the key to the browser and never accepts arbitrary remote URLs.
 const JSON_HEADERS = {"Content-Type":"application/json; charset=utf-8", "X-Content-Type-Options":"nosniff"};
 const json = (data,status=200,extra={})=>new Response(JSON.stringify(data),{status,headers:{...JSON_HEADERS,"Cache-Control":"no-store",...extra}});
-const trimText=(s,max=10000)=>String(s||"").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/\s+/g," ").trim().slice(0,max);
+const trimText=(s,max=10000)=>String(s||"").replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/\s+/g," ").replace(/\s+([.,!?;:])/g,"$1").trim().slice(0,max);
 const httpUrl=(s)=>typeof s==="string"&&/^https:\/\//i.test(s)&&s.length<2500?s:null;
 const uniq=a=>[...new Set(a.filter(Boolean))];
 function normalize(post){
