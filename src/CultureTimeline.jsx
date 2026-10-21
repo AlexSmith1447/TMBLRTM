@@ -40,8 +40,8 @@ export default function CultureTimeline({date,onDateChange,onExplore}){
   const jump=(event)=>{onDateChange(event.date);setSelected(event.id)};
   const step=(amount)=>onDateChange(dateFromIndex(Math.max(0,Math.min(MAX,currentIndex+amount))));
   const progress=(currentIndex/MAX)*100;
-  const visibleEras=CULTURE_ERAS.filter(e=>category==="All"||e.category===category).map(e=>({
-    ...e,startIndex:monthIndex(e.start+"-01"),endIndex:monthIndex(e.end+"-01")
+  const visibleEras=CULTURE_ERAS.filter(e=>(category==="All"||e.category===category)&&(historian||e.start<=date.slice(0,7))).map(e=>({
+    ...e,startIndex:monthIndex(e.start+"-01"),endIndex:historian?monthIndex(e.end+"-01"):Math.min(currentIndex,monthIndex(e.end+"-01"))
   }));
   const FocusIcon=focused?(iconFor[focused.category]||WandSparkles):Info;
   return <section className="culture-timeline" aria-label="Internet culture timeline">
