@@ -21,7 +21,7 @@ function App(){
   const [notes,setNotes]=useState(()=>read("tm-posts",[]));
   const [showEditor,setShowEditor]=useState(false);
   const [draft,setDraft]=useState({title:"",text:"",tags:""});
-  const [savedBlogs,setSavedBlogs]=useState(()=>read("tm-follows",["staff","internetghost"]));
+  const [savedBlogs,setSavedBlogs]=useState(()=>{const v=read("tm-follows",["staff"]);return v.length===2&&v[0]==="staff"&&v[1]==="internetghost"?["staff"]:v});
   const [drawer,setDrawer]=useState(false);
   const [toolTab,setToolTab]=useState("time");
   const [importMode,setImportMode]=useState("blog");
