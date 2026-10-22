@@ -4,6 +4,7 @@ import {Home,Compass,Heart,Bookmark,CalendarDays,ChevronRight,Menu,Sun,Moon,Info
 import CultureTimeline from "./CultureTimeline.jsx";
 import LiveArchive from "./LiveArchive.jsx";
 import "./style.css";
+import "./search.css";
 
 const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key))??def}catch{return def}};
 const userDate=()=>read("tm-date","2012-12-31");
