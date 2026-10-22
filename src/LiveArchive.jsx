@@ -121,7 +121,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  useEffect(()=>{localStorage.setItem("tm2-saved",JSON.stringify(saved))},[saved]);
  useEffect(()=>{setType(initialType)},[initialType]);
  useEffect(()=>{setMonth(null);setActiveTheme(read("tm-blog-themes",{})[singleName]||themeFor(singleName))},[singleName]);
- useEffect(()=>{if(!isBlog){setBlogInfo(null);return}
+ useEffect(()=>{setBlogInfo(null);if(!isBlog)return;
   let active=true;const controller=new AbortController();
   fetch("/api/tumblr?"+new URLSearchParams({mode:"info",blog:initialBlog}),{signal:controller.signal}).then(r=>r.json()).then(d=>{if(active&&d.blog)setBlogInfo(d.blog)}).catch(()=>{});
   return()=>{active=false;controller.abort()};
@@ -166,13 +166,15 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  const loadMore=async()=>{
   if(moreLoading||loading||!hasMore)return;
   setMoreLoading(true);setError("");
+  const signal=requestGuard.current?.signal;
   const sources=Object.entries(cursors).filter(([,v])=>v.hasMore);
   const results=await Promise.allSettled(sources.map(([name,v])=>requestOne({
    name:name==="__tag__"?null:name,tag:name==="__tag__"?effectiveTag:null,
    offset:name==="__tag__"?0:v.offset,
    beforeValue:name==="__tag__"?(v.before||before):before,
-   batch:12
+   batch:12,signal
   })));
+  if(signal?.aborted){setMoreLoading(false);return}
   const good=results.filter(r=>r.status==="fulfilled").map(r=>r.value);
   const failed=results.filter(r=>r.status==="rejected");
   if(good.length){setPosts(old=>merge(old,good.flatMap(r=>r.posts)));setCursors(old=>({...old,...Object.fromEntries(good.map(x=>[x.name,x.next]))}))}
