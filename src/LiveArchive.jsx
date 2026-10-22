@@ -70,12 +70,12 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
 }
 const themes=["classic","midnight","paper","pastel"];
 function themeFor(name){let n=0;for(const c of name||"")n=(n*31+c.charCodeAt(0))>>>0;return themes[n%themes.length]}
-function BlogHeader({name,info,followed,onToggle,month,onMonth,cutoffDate}){
+function BlogHeader({name,info,followed,onToggle,month,onMonth,cutoffDate,onThemeChange}){
  const [showMonths,setShowMonths]=useState(false);
  const [year,setYear]=useState(Number(cutoffDate.slice(0,4)));
  const [theme,setTheme]=useState(()=>read("tm-blog-themes",{})[name]||themeFor(name));
  useEffect(()=>{setTheme(read("tm-blog-themes",{})[name]||themeFor(name));setShowMonths(false);setYear(Number(cutoffDate.slice(0,4)))},[name,cutoffDate.slice(0,4)]);
- const switchTheme=value=>{setTheme(value);const all=read("tm-blog-themes",{});localStorage.setItem("tm-blog-themes",JSON.stringify({...all,[name]:value}))};
+ const switchTheme=value=>{setTheme(value);onThemeChange?.(value);const all=read("tm-blog-themes",{});localStorage.setItem("tm-blog-themes",JSON.stringify({...all,[name]:value}))};
  const currentMonth=cutoffDate.slice(0,7);
  return <div className={"tm-blog-layout theme-"+theme}>
   <div className="tm-blog-cover">
@@ -101,6 +101,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  const [partial,setPartial]=useState("");
  const [cursors,setCursors]=useState({});
  const [blogInfo,setBlogInfo]=useState(null);
+ const [activeTheme,setActiveTheme]=useState(()=>read("tm-blog-themes",{})[initialBlog]||themeFor(initialBlog));
  const [month,setMonth]=useState(null);
  const [type,setType]=useState(initialType);
  const [query,setQuery]=useState("");
@@ -119,7 +120,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  useEffect(()=>{localStorage.setItem("tm2-likes",JSON.stringify(liked))},[liked]);
  useEffect(()=>{localStorage.setItem("tm2-saved",JSON.stringify(saved))},[saved]);
  useEffect(()=>{setType(initialType)},[initialType]);
- useEffect(()=>{setMonth(null)},[singleName]);
+ useEffect(()=>{setMonth(null);setActiveTheme(read("tm-blog-themes",{})[singleName]||themeFor(singleName))},[singleName]);
  useEffect(()=>{if(!isBlog){setBlogInfo(null);return}
   let active=true;const controller=new AbortController();
   fetch("/api/tumblr?"+new URLSearchParams({mode:"info",blog:initialBlog}),{signal:controller.signal}).then(r=>r.json()).then(d=>{if(active&&d.blog)setBlogInfo(d.blog)}).catch(()=>{});
@@ -178,8 +179,8 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   if(failed.length)setError(good.length?"Some posts could not be loaded.":"Could not load more posts.");
   setMoreLoading(false);
  };
- return <section className={"tt-live"+(immersive?" tt-immersive":"")}>
-  {isBlog&&<BlogHeader name={singleName} info={blogInfo} followed={followed.includes(singleName)} onToggle={onToggleFollow||(()=>{})} month={month} onMonth={setMonth} cutoffDate={date}/>}
+ return <section className={"tt-live"+(immersive?" tt-immersive":"")+(isBlog?" tm-blog-feed theme-"+activeTheme:"")}>
+  {isBlog&&<BlogHeader name={singleName} info={blogInfo} followed={followed.includes(singleName)} onToggle={onToggleFollow||(()=>{})} month={month} onMonth={setMonth} cutoffDate={date} onThemeChange={setActiveTheme}/>}
   {isDashboard&&names.length===0&&<FeedEmpty message="Follow some blogs using the sidebar, then their posts will appear here." icon={Users}/>}
   {isDashboard&&names.length>0&&<div className="tm-feed-source"><Users size={13}/> Following {names.length} {names.length===1?"blog":"blogs"} <span>·</span> <button onClick={()=>onBlog(names[0])}>View {names[0]} <ArrowRight size={12}/></button></div>}
   {(isTag||isBlog||type!=="all")&&<div className="tt-filterrow">
