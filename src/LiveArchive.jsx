@@ -29,7 +29,7 @@ function PhotoGrid({post,onOpen}){
  const count=post.images?.length||0;
  if(!count)return null;
  return <div className={"tm-photoset count-"+Math.min(6,count)}>
-  {post.images.slice(0,10).map((url,i)=><button key={url+i} className={"tm-photo-cell image-"+i} type="button" onClick={()=>onOpen(i)} title={"View photo "+(i+1)}>
+  {post.images.slice(0,6).map((url,i)=><button key={url+i} className={"tm-photo-cell image-"+i} type="button" onClick={()=>onOpen(i)} title={"View photo "+(i+1)}>
     <img src={url} alt={"Photo "+(i+1)+" by "+post.blog} loading="lazy" referrerPolicy="no-referrer"/>
     {i===5&&count>6&&<span className="tm-photo-more">+{count-6} photos</span>}
   </button>)}
