@@ -61,3 +61,22 @@
 .tm-media-block a{margin-left:auto;display:flex;align-items:center;gap:3px;color:#4b7996;text-decoration:none}
 .night .tm-trail{border-color:#3f5563}.night .tm-trail-entry p{color:#c1d5df}.night .tm-trail-entries{border-color:#486678}.night .tm-trail-toggle{color:#9abacb}.night .tm-media-block{background:#3a5260;color:#e1ebf1}
 @media(max-width:690px){.tm-blog-layout,.tm-feed-source,.tm-partial{margin-left:0}.tm-blog-cover-inner{padding:17px;gap:11px}.tm-blog-cover-inner h2{font-size:23px}.tm-blog-avatar.xl{height:58px;width:58px}.tm-archive-months{grid-template-columns:repeat(4,1fr)}.tm-avatar-button{flex-basis:36px}.tm-avatar-button .tm-blog-avatar{width:36px;height:36px;border-width:2px;font-size:19px}.tt-immersive .tt-post{gap:7px}.tm-author{gap:4px}.tm-blog-navigation{padding:6px}.tm-blog-navigation button{padding:8px 6px}.tm-blog-navigation .tm-blog-follow{font-size:10px}}
+
+/* A local theme affects the whole visited blog, not just the cover. */
+.tm-blog-feed.theme-midnight .tt-post-paper{background:#282839;color:#dcd8e7}
+.tm-blog-feed.theme-midnight .tt-post-blog,.tm-blog-feed.theme-midnight .tt-post-title,.tm-blog-feed.theme-midnight .tt-post-text,.tm-blog-feed.theme-midnight .tt-quote{color:#ded8ef}
+.tm-blog-feed.theme-midnight .tt-post-footer{background:#222233;border-color:#423e58}
+.tm-blog-feed.theme-midnight .tt-post-tags button{color:#ad9ebe}
+.tm-blog-feed.theme-midnight .tm-trail{border-color:#4c435f}
+.tm-blog-feed.theme-midnight .tm-trail-entry p{color:#b7adc8}
+.tm-blog-feed.theme-paper .tt-post-paper{background:#fcf6eb;color:#604d3c}
+.tm-blog-feed.theme-paper .tt-post-blog,.tm-blog-feed.theme-paper .tt-post-title,.tm-blog-feed.theme-paper .tt-post-text,.tm-blog-feed.theme-paper .tt-quote{color:#60503e}
+.tm-blog-feed.theme-paper .tt-post-footer{background:#f3e9dc;border-color:#e1d8c7}
+.tm-blog-feed.theme-paper .tt-post-tags button{color:#ab947e}
+.tm-blog-feed.theme-pastel .tt-post-paper{background:#fff7fc;color:#695a71}
+.tm-blog-feed.theme-pastel .tt-post-blog,.tm-blog-feed.theme-pastel .tt-post-title,.tm-blog-feed.theme-pastel .tt-post-text,.tm-blog-feed.theme-pastel .tt-quote{color:#785a79}
+.tm-blog-feed.theme-pastel .tt-post-footer{background:#faedf5;border-color:#eedce9}
+.tm-blog-feed.theme-pastel .tt-post-tags button{color:#b58ea8}
+.tm-blog-feed.theme-midnight .tt-post-paper:before{border-right-color:#282839}
+.tm-blog-feed.theme-paper .tt-post-paper:before{border-right-color:#fcf6eb}
+.tm-blog-feed.theme-pastel .tt-post-paper:before{border-right-color:#fff7fc}
