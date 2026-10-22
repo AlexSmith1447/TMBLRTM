@@ -1,0 +1,462 @@
+/*
+ * Tumblr Time Machine — 2012 desktop refinement.
+ * Visual-only layer. Kept separate so later historical UI versions can have
+ * distinct stylesheets without rewriting the Tumblr data or time-travel logic.
+ * Reference period: after Tumblr's Feb + Sept 2012 desktop refinements.
+ */
+
+/* A restrained 2012-era palette and narrower dashboard silhouette. */
+.app.classic{
+  --dash-navy:#2d465d;
+  --dash-top:#365774;
+  --dash-rule:#526b80;
+  --paper:#fff;
+  --paper-line:#d7dce0;
+  background:#2d465d;
+  background-image:linear-gradient(180deg,#2e4b65 0,#2a4054 340px,#2a4054 100%);
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:12px;
+}
+.classic-topbar{
+  height:57px;
+  background:linear-gradient(180deg,#3a5b78 0%,#355470 100%);
+  border-bottom:1px solid #274159;
+  box-shadow:0 1px 0 #6c84961f,0 2px 5px #162e4226;
+}
+.classic-top-inner{
+  max-width:1005px;
+  padding:0 13px;
+  gap:18px;
+}
+.classic-logo{
+  font-size:37px;
+  letter-spacing:-2.3px;
+  text-shadow:0 1px 0 #182f47;
+  padding-bottom:2px;
+}
+.classic-topnav{gap:0}
+.classic-topnav button{
+  padding:0 11px;
+  gap:6px;
+  font-size:11px;
+  border-left:1px solid #2a486024;
+  border-right:1px solid #54708919;
+  text-shadow:0 1px 0 #1d364a44;
+}
+.classic-topnav button.active{background:#2c4962;color:#f4f8fb}
+.classic-topnav button:hover:not(.active){background:#30506b;color:#eaf3fa}
+.classic-topnav button.active:after{bottom:-5px;width:10px;height:10px}
+.classic-topnav button svg{opacity:.82}
+.classic-topnav button.active svg{opacity:1}
+.immersive .classic-top-inner{gap:18px}
+.immersive .tm-search-wrap{max-width:210px}
+.immersive .classic-global-search{
+  min-width:120px;
+  background:#29485f;
+  border-color:#29445b;
+  box-shadow:inset 0 1px 3px #162a3e47,0 1px 0 #7893a91a;
+  height:30px;
+  padding:6px 8px;
+  border-radius:4px;
+}
+.immersive .classic-global-search:focus-within{
+  background:#22445f;
+  box-shadow:0 0 0 1px #6c9bb8,0 0 10px #4d92b75c,inset 0 1px 2px #0e253b66;
+}
+.immersive .classic-global-search input{font-size:11px}
+.immersive .classic-top-utils{gap:7px}
+.immersive .tm-secret-trigger{opacity:.65}
+.immersive .tm-secret-trigger:hover{opacity:1}
+
+/* Classic two-column proportions; avatar sits outside the paper. */
+.classic-shell{
+  max-width:1005px;
+  padding:19px 13px 32px;
+  grid-template-columns:minmax(0,705px) minmax(0,248px);
+  gap:26px;
+}
+.classic-composer{
+  gap:10px;
+  margin:1px 0 14px;
+}
+.classic-avatar,.tm-avatar-button .tm-blog-avatar{
+  height:48px;
+  width:48px;
+  border:2px solid #253e53;
+  border-radius:4px;
+  box-shadow:0 1px 3px #11283c8c;
+}
+.classic-avatar{
+  flex:0 0 48px;
+  font-size:43px;
+  background:linear-gradient(150deg,#8aa5b8 0%,#5b809c 38%,#34516b 100%);
+  text-shadow:0 2px 0 #1e425e;
+}
+.classic-composer-card{
+  padding:11px 6px 10px;
+  gap:0;
+  border:1px solid #d9dde0;
+  border-radius:4px;
+  background:linear-gradient(#fff,#fbfbfb);
+  box-shadow:0 1px 2px #142c3d55,0 1px 0 #ffffff1a;
+}
+.classic-composer-card:before{
+  left:-9px;top:16px;
+  border-right-width:9px;
+  border-top-width:8px;
+  border-bottom-width:8px;
+  border-right-color:#fff;
+}
+.classic-composer-card button{
+  gap:4px;
+  min-height:47px;
+  padding:1px 4px;
+  color:#8a949c;
+  border-right:1px solid #e5e8ea;
+  transition:background .12s ease;
+}
+.classic-composer-card button:hover{
+  color:#445b6d;
+  background:linear-gradient(#f9fbfc,#ecf2f6);
+}
+.classic-composer-card button:active{background:#e2eef5}
+.classic-composer-icon{height:25px}
+.classic-composer-icon svg{height:23px;width:23px;stroke-width:2.5}
+.classic-composer-icon.text span{font-size:26px}
+.classic-composer-icon.photo{color:#e36340}
+.classic-composer-icon.quote{color:#ef9c3a}
+.classic-composer-icon.link{color:#59b695}
+.classic-composer-icon.chat{color:#56b7d3}
+.classic-composer-icon.audio{color:#ad7abb}
+.classic-composer-icon.video{color:#677e8e}
+.classic-composer-card small{font-size:10px;line-height:1.15}
+.classic-bar{
+  margin:13px 0 11px 58px;
+  border-bottom:1px solid #56738a;
+  padding-bottom:7px;
+}
+.immersive .classic-bar{margin-top:13px}
+.classic-bar h1{font-size:12px;color:#d9e8f2}
+.classic-bar button{color:#b3ccdc}
+.classic-bar button:hover{color:white}
+
+/* Post paper: small measured bevel, compact typography and traditional footer. */
+.tt-post-list{gap:12px}
+.tt-post{gap:10px}
+.tt-immersive .tt-post{gap:10px}
+.tm-avatar-button{flex:0 0 48px}
+.tm-avatar-button .tm-blog-avatar{
+  height:48px;width:48px;
+  border:2px solid #284259;
+  box-shadow:0 1px 3px #12283a82;
+}
+.tt-post-paper{
+  border:1px solid #d7dce0;
+  border-radius:3px;
+  box-shadow:0 1px 1px #0e273b38,0 2px 4px #112b402a;
+}
+.tt-post-paper:before{
+  left:-8px;
+  top:15px;
+  border-right-width:8px;
+  border-top-width:8px;
+  border-bottom-width:8px;
+}
+.tt-post-head{
+  padding:10px 14px 8px;
+  gap:8px;
+}
+.tm-author{gap:4px 6px}
+.tt-post-blog{
+  font-size:12px;
+  line-height:1.3;
+  color:#315d7e;
+  font-weight:700;
+}
+.tt-post-blog:hover{text-decoration:underline;color:#244864}
+.tt-post-head small{
+  color:#a4abb2;
+  font-size:10px;
+  line-height:1.3;
+  margin-top:2px;
+}
+.tm-reblog-source{
+  font-size:10px;
+  color:#99a4ad;
+  gap:3px;
+}
+.tt-post-open{
+  color:#a0aeb9;
+  margin-top:1px;
+  line-height:0;
+}
+.tt-post-title{
+  color:#2f424e;
+  font:700 21px/1.25 Georgia,serif;
+  margin:4px 14px 9px;
+}
+.tt-post-text{
+  color:#414b53;
+  font:12.5px/1.58 Arial,Helvetica,sans-serif;
+  margin:7px 14px 14px;
+  white-space:pre-line;
+  overflow-wrap:anywhere;
+}
+.tt-post-text.empty{font-size:11.5px}
+.tt-quote{
+  margin:8px 16px 15px;
+  font:22px/1.42 Georgia,serif;
+}
+.tt-post-tags{
+  padding:0 14px 10px;
+  gap:5px 8px;
+}
+.tt-post-tags button{
+  font-size:10px;
+  line-height:1.35;
+  color:#9ba6af;
+}
+.tt-post-tags button:hover{color:#437b9c}
+.tt-post-footer{
+  min-height:36px;
+  padding:7px 13px;
+  background:linear-gradient(#fff,#f8f9fa);
+  border-top:1px solid #e9ecef;
+  border-radius:0 0 3px 3px;
+  font-size:10px;
+  font-weight:normal;
+  color:#8fa3b0;
+}
+.tt-post-footer div{gap:11px}
+.tt-post-footer button,.tt-post-footer a{
+  display:grid;
+  width:23px;height:23px;
+  place-items:center;
+  border-radius:3px;
+  color:#97aab7;
+  transition:background .12s ease,color .12s ease;
+}
+.tt-post-footer button:hover,.tt-post-footer a:hover{
+  background:#e8f0f5;
+  color:#4b7d9d;
+}
+.tt-post-footer button.hearted{color:#cf6e80}
+.tt-post-footer button.marked{color:#4c819d}
+.tm-trail{
+  padding-top:7px;
+  margin:1px 14px 9px;
+  border-color:#eef0f2;
+}
+.tm-trail-toggle{
+  color:#8a9da9;
+  font-size:10px;
+  padding:5px 0;
+}
+.tt-photoset{gap:2px}
+.tm-photo-cell img{transition:filter .15s ease}
+.tt-immersive .tt-load-more{
+  margin-top:17px;
+  background:linear-gradient(#4e718c,#385a75);
+  border-color:#6b8aa0;
+  box-shadow:inset 0 1px 0 #ffffff2b,0 1px 2px #10283e55;
+  border-radius:3px;
+  padding:11px;
+  font-size:11px;
+}
+.tt-immersive .tt-load-more:hover{background:linear-gradient(#6486a1,#446b87)}
+
+/* Sidebar: no detached administrative cards — one continuous Tumblr sidebar. */
+.classic-sidebar{
+  top:76px;
+  font-size:11px;
+}
+.classic-profile{
+  margin-bottom:16px;
+  padding-bottom:0;
+  border-bottom:0;
+}
+.classic-profile-top{
+  padding:1px 0 12px;
+  margin-bottom:1px;
+  border-bottom:1px solid #48677f;
+}
+.classic-profile-avatar{
+  width:39px;height:39px;
+  border-radius:3px;
+  border:1px solid #20374d;
+  background:linear-gradient(#7394aa,#395a75);
+  box-shadow:0 1px 2px #182d4080;
+  font-size:33px;
+}
+.classic-profile-top strong{font-size:12px;color:#f4f8fc}
+.classic-profile-top small{font-size:10px;color:#a7bbcb}
+.classic-community{
+  padding:2px 0;
+  border-bottom:1px solid #46657d;
+}
+.classic-community-count,.classic-community button{
+  display:flex;align-items:center;gap:8px;
+  min-height:29px;
+  padding:5px 7px;
+  color:#b4c9d7;
+  font-size:11px;
+}
+.classic-community-count strong{font-weight:700;color:#e5f1f8}
+.classic-community button{
+  width:100%;
+  border:0;
+  background:none;
+  text-align:left;
+}
+.classic-community button svg:last-child{margin-left:auto;color:#7fa3bc}
+.classic-community button:hover{background:#3b5d77;color:#fff}
+.classic-profile nav{gap:0;padding:3px 0}
+.classic-profile nav button{
+  min-height:31px;
+  padding:7px 7px;
+  font-size:11px;
+  color:#c3d6e4;
+  border-top:1px solid #526f862e;
+}
+.classic-profile nav button:last-child{border-bottom:1px solid #45647b}
+.classic-profile nav button svg:first-child{color:#90b3c9}
+.classic-profile nav button svg:last-child{opacity:.65}
+.classic-profile nav button:hover{background:#375a75}
+.classic-sidebox{margin-bottom:17px}
+.classic-sidebox h2{
+  margin:0 0 9px;
+  padding:0 0 8px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.35px;
+  color:#dcebf6;
+  border-bottom:1px solid #59758c;
+}
+.classic-sidebox h2 svg{opacity:.7}
+.classic-tag-section .classic-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:2px 9px;
+}
+.classic-tag-section .classic-tags button{
+  color:#b3c9d9;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  font-size:11px;
+  padding:4px 0;
+  line-height:1.3;
+  text-align:left;
+}
+.classic-tag-section .classic-tags button:hover{
+  color:#fff;
+  background:none;
+  text-decoration:underline;
+}
+.classic-blogrow{
+  padding:5px 0;
+  min-height:34px;
+  border-bottom:1px solid #4c6a805c;
+}
+.classic-blogrow button{
+  color:#c4d6e4;
+  font-size:11px;
+  gap:8px;
+}
+.classic-blogrow button:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.classic-blogrow button:hover{color:white}
+.classic-mini-avatar{
+  width:26px;height:26px;flex:0 0 26px;
+  font:700 16px Georgia,serif;
+  background:linear-gradient(#85a8bf,#517994);
+  border:1px solid #1c3d53;
+  border-radius:3px;
+  box-shadow:0 1px 2px #0003;
+}
+.classic-addblog input{
+  padding:8px 9px;
+  border:1px solid #587b95;
+  box-shadow:inset 0 1px 2px #183a525a;
+  background:#dce9f1;
+  border-radius:3px;
+  font-size:11px;
+}
+.classic-addblog input:focus{background:#fff}
+.classic-addblog small{margin-top:5px;color:#9ab4c6}
+
+/* Original-search-inspired small glossy dropdown, but not a giant overlay. */
+.tm-search-popup{
+  width:275px;
+  max-height:334px;
+  border-radius:4px;
+  border:1px solid #aab8c2;
+  box-shadow:0 13px 22px #051a2b73,0 2px 5px #1b314769;
+}
+.tm-search-popup .tm-search-title{padding:6px 10px 5px;font-size:9px}
+.tm-search-popup .tm-search-suggestion{padding:6px 8px;gap:9px;min-height:39px}
+.tm-search-popup .tm-search-icon{height:29px;width:29px;font-size:18px}
+.tm-search-popup .tm-search-suggestion strong{font-size:11px}
+.tm-search-popup .tm-search-suggestion small{font-size:9px;margin-top:2px}
+.tm-search-popup .tm-search-all{padding:9px;font-size:10px;min-height:32px}
+.tm-search-popup .tm-search-suggestion:hover{background:#e4eef4}
+
+/* Theme variants remain under the user's control on visited blog pages. */
+.app.classic.night .tt-post-footer{background:#243746;border-color:#3a5364}
+.app.classic.night .tt-post-paper{border-color:#354d5f}
+.app.classic.night .classic-composer-card{background:linear-gradient(#fafafa,#f3f3f3)}
+.app.classic.night .classic-topbar{background:linear-gradient(#263c51,#1e3447)}
+
+/* Responsive adjustments must keep the sidebar legible and controls accessible. */
+@media(max-width:1000px){
+  .classic-shell{grid-template-columns:minmax(0,1fr) 226px;gap:20px}
+  .classic-top-inner{gap:14px}
+  .classic-topnav button{padding:0 8px}
+}
+@media(max-width:850px){
+  .classic-shell{grid-template-columns:minmax(0,1fr) 205px;gap:14px}
+  .classic-top-inner{gap:8px}
+  .immersive .tm-search-wrap{max-width:170px}
+  .classic-topnav button{padding:0 7px;font-size:10px}
+}
+@media(max-width:690px){
+  .classic-topbar{height:56px}
+  .classic-shell{display:block;padding:13px 10px}
+  .classic-composer{gap:7px}
+  .classic-avatar{width:37px;height:37px;flex-basis:37px;font-size:33px}
+  .classic-composer-card{padding:9px 3px 8px}
+  .classic-composer-card button{min-height:39px;padding:1px 2px}
+  .classic-composer-icon{height:22px}
+  .classic-composer-icon svg{height:19px;width:19px}
+  .classic-composer-icon.text span{font-size:20px}
+  .classic-bar{margin-left:0}
+  .tm-avatar-button{flex-basis:36px}
+  .tm-avatar-button .tm-blog-avatar{width:36px;height:36px}
+  .tt-immersive .tt-post{gap:7px}
+  .tt-post-head{padding:9px 11px 8px}
+  .tt-post-text{font-size:12px;margin:6px 11px 12px}
+  .tt-post-tags{padding:0 11px 9px}
+  .tt-post-footer{padding:7px 10px}
+  .tt-post-title{margin:4px 11px 9px}
+  .tm-trail{margin:1px 11px 9px}
+  .classic-sidebar{position:static;margin-top:22px}
+  .classic-profile{display:block}
+  .classic-profile-top{display:none}
+  .classic-community{display:none}
+  .classic-profile nav{display:grid;grid-template-columns:1fr 1fr}
+  .classic-profile nav button{border-bottom:1px solid #526f8645;font-size:11px}
+  .classic-sidebox:not(.date){display:block}
+  .classic-tag-section{display:none}
+  .classic-blog-section{display:block}
+  .classic-blog-section .classic-blogrow{display:inline-flex;margin-right:13px}
+  .immersive .tm-search-wrap{max-width:none}
+  .tm-search-popup{width:min(275px,calc(100vw - 24px));max-height:305px}
+}
+@media(max-width:390px){
+  .classic-topnav button{padding:0 5px}
+  .classic-composer-card small{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  .classic-composer-card button,
+  .tt-post-footer button,
+  .tt-post-footer a{transition:none}
+}
