@@ -1,0 +1,18 @@
+.tm-search-wrap{position:relative;flex:1;max-width:230px;min-width:110px;margin-left:auto}
+.immersive .tm-search-wrap .classic-global-search{width:100%;max-width:none;margin:0}
+.tm-search-popup{position:absolute;top:calc(100% + 11px);right:0;width:min(300px,calc(100vw - 24px));max-height:min(440px,75vh);overflow-y:auto;z-index:60;background:linear-gradient(#fff,#f1f1f1);border:1px solid #acb9c4;border-radius:5px;box-shadow:0 15px 28px #0006,0 1px 2px #142e4166;color:#4a5964}
+.tm-search-popup:before{content:"";position:absolute;right:28px;top:-7px;background:#fff;width:13px;height:13px;transform:rotate(45deg);border-left:1px solid #acb9c4;border-top:1px solid #acb9c4}
+.tm-search-title{padding:9px 12px 6px;font-size:9px;color:#83949e;font-weight:800;letter-spacing:.8px;text-transform:uppercase;background:linear-gradient(#e8ebed,#fbfbfb);border-bottom:1px solid #dadfe2}
+.tm-search-suggestion{width:100%;border:0;border-bottom:1px solid #e3e5e7;background:transparent;display:flex;align-items:center;gap:11px;padding:8px 10px;text-align:left}
+.tm-search-suggestion:hover,.tm-search-suggestion:focus-visible{background:#e2edf5}
+.tm-search-icon{height:35px;width:35px;border:1px solid #cbd4da;border-radius:3px;background:#dfedf2;color:#527a8e;display:grid;place-items:center;font:bold 21px Georgia;text-shadow:0 1px #fff}
+.tm-search-icon.n1{background:#c9ced8;color:#646584}.tm-search-icon.n2{background:#e2d8e4;color:#9b7290}.tm-search-icon.n3{background:#e6d4c9;color:#ac7c59}.tm-search-icon.n4{background:#d2e3d8;color:#628975}
+.tm-search-icon.b0{background:#b1c3ce;color:#2b5972}.tm-search-icon.b1{background:#d4bdce;color:#6b4874}.tm-search-icon.b2{background:#c1cfae;color:#566b3c}
+.tm-search-suggestion>span:nth-child(2){flex:1;min-width:0}
+.tm-search-suggestion strong{display:block;font-size:12px;color:#3f4b54}
+.tm-search-suggestion small{display:block;margin-top:3px;font-size:10px;color:#a1a7aa}
+.tm-search-suggestion>svg{color:#a0adb6}
+.tm-search-all{width:100%;background:linear-gradient(#f1f1f1,#c9cacc);color:#767c83;text-shadow:0 1px #fff;font-size:11px;font-weight:bold;padding:12px;text-align:center;border:0;display:flex;justify-content:center;align-items:center;gap:7px}
+.tm-search-all:hover{background:linear-gradient(#ebeff2,#b9c9d4)}
+.tm-search-noresults{padding:14px;font-size:11px;color:#8294a1}
+@media(max-width:690px){.tm-search-wrap{min-width:80px;max-width:none;flex:1}.tm-search-popup{right:-46px;top:calc(100% + 13px)}}
