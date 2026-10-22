@@ -1,6 +1,6 @@
 import React,{useEffect,useState,useRef} from "react";
 import {createRoot} from "react-dom/client";
-import {Home,Compass,Heart,Bookmark,CalendarDays,ChevronRight,Menu,Sun,Moon,Info,Camera,Quote,Type,Link2,MessageSquare,Video,Headphones,Plus,ExternalLink,X,ArrowLeft,Search,Clock3,SlidersHorizontal,BookOpen,Archive,Check} from "lucide-react";
+import {Home,Compass,Heart,Bookmark,CalendarDays,ChevronRight,Menu,Sun,Moon,Info,Camera,Quote,Type,Link2,MessageSquare,Video,Headphones,Plus,ExternalLink,X,ArrowLeft,ArrowRight,Search,Clock3,SlidersHorizontal,BookOpen,Archive,Check} from "lucide-react";
 import CultureTimeline from "./CultureTimeline.jsx";
 import LiveArchive from "./LiveArchive.jsx";
 import "./style.css";
