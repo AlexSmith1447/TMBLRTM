@@ -19,7 +19,7 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
     <div className="tt-avatar" aria-hidden="true">{avatar}</div>
     <div className="tt-post-paper">
       <div className="tt-post-head">
-        <div><button type="button" onClick={()=>onBlog?.(post.blog)} className="tt-post-blog">{post.blog}</button>{post.reblogFrom&&<span className="tt-reblog"> <Repeat2 size={11}/> from {post.reblogFrom}</span>}<small>{pretty(post.date)} · {post.type}{post.demo?" · SAMPLE":""}</small></div>
+        <div><button type="button" onClick={()=>onBlog?.(post.blog)} className="tt-post-blog">{post.blog}</button>{post.reblogFrom&&<span className="tt-reblog"> <Repeat2 size={11}/> from {post.reblogFrom}</span>}<small>{pretty(post.date)}{post.demo?" · SAMPLE":""}</small></div>
         {post.url&&<a href={post.url} target="_blank" rel="noopener noreferrer" className="tt-post-open" title="View original Tumblr post"><ExternalLink size={15}/></a>}
       </div>
       {post.title&&<h3 className="tt-post-title">{post.title}</h3>}
@@ -37,7 +37,7 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
   </article>;
 }
 
-export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],initialType="all"}){
+export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],initialType="all",immersive=false}){
   const [configured,setConfigured]=useState(null);
   const [source,setSource]=useState("blog");
   const [blog,setBlog]=useState("staff");
@@ -60,8 +60,8 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   useEffect(()=>{localStorage.setItem("tm2-likes",JSON.stringify(liked))},[liked]);
   useEffect(()=>{localStorage.setItem("tm2-saved",JSON.stringify(saved))},[saved]);
   useEffect(()=>{localStorage.setItem("tm2-imported-blogs",JSON.stringify(archiveNames))},[archiveNames]);
-  useEffect(()=>{if(initialTag){setTag(initialTag);setTagDraft(initialTag);setSource("tag");setMode("live")}else if(initialBlog){setBlog(initialBlog);setBlogDraft(initialBlog);setSource("blog");setMode("live")}else if(tab==="explore"){setSource("tag")}},[initialTag,initialBlog,tab]);
-  const effectiveMode=mode==="live"&&configured?"live":"sample";
+  useEffect(()=>{if(initialTag){setTag(initialTag);setTagDraft(initialTag);setSource("tag");setMode("live")}else if(initialBlog){setBlog(initialBlog);setBlogDraft(initialBlog);setSource("blog");setMode("live")}else if(tab==="explore"){setSource("tag")}else if(tab==="dashboard"){setSource("blog");setBlog("staff")}},[initialTag,initialBlog,tab]);
+  const effectiveMode=mode==="live"?(configured===null?"pending":configured?"live":"sample"):"sample";
   useEffect(()=>{setType(initialType)},[initialType]);
   const fetchAbort=useRef(null);
   const currentSource=source==="blog"?"blog:"+blog:"tag:"+tag;
@@ -97,9 +97,9 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   const filtered=useMemo(()=>viewPosts.filter(p=>(type==="all"||(type==="photo"?isPhoto(p):p.type===type))&&(!query||[p.blog,p.title,p.text,p.quote,...(p.tags||[])].filter(Boolean).join(" ").toLowerCase().includes(query.toLowerCase()))).sort((a,b)=>b.date.localeCompare(a.date)),[viewPosts,type,query]);
   const loadMore=async()=>{if(loading||!cursor.hasMore)return;setLoading(true);setError("");try{await requestPage({append:true})}catch(e){setError(e.message)}finally{setLoading(false)}};
   const pinnedMode=tab==="saved"||tab==="likes";
-  return <section className="tt-live">
-    <div className="tt-feed-intro"><div><div className="tt-overline">{pinnedMode?"YOUR LOCAL COLLECTION":effectiveMode==="live"?"LIVE TUMBLR ARCHIVE":"HISTORICAL PREVIEW"}</div><h2>{tab==="liked"||tab==="likes"?"Liked posts":tab==="saved"?"Saved posts":initialBlog?initialBlog:initialTag?"#"+initialTag:tab==="following"?"Following archive":source==="blog"?"Explore a Tumblr blog":"Explore a historical tag"}</h2><p>{pinnedMode?"These posts are stored in this browser.":effectiveMode==="live"?"Surviving public Tumblr posts published no later than "+pretty(date)+".":"Illustrative demo posts. Connect a Tumblr API key for real history."}</p></div><div className={"tt-api-chip "+(configured?"ready":"offline")}>{configured?<><Wifi size={13}/> API connected</>:<><WifiOff size={13}/> {configured===null?"Checking…":"Demo only"}</>}</div></div>
-    {!pinnedMode&&<div className="tt-import-box">
+  return <section className={"tt-live"+(immersive?" tt-immersive":"")}>
+    {!immersive&&<div className="tt-feed-intro"><div><div className="tt-overline">{pinnedMode?"YOUR LOCAL COLLECTION":effectiveMode==="live"?"LIVE TUMBLR ARCHIVE":"HISTORICAL PREVIEW"}</div><h2>{tab==="liked"||tab==="likes"?"Liked posts":tab==="saved"?"Saved posts":initialBlog?initialBlog:initialTag?"#"+initialTag:tab==="following"?"Following archive":source==="blog"?"Explore a Tumblr blog":"Explore a historical tag"}</h2><p>{pinnedMode?"These posts are stored in this browser.":effectiveMode==="live"?"Surviving public Tumblr posts published no later than "+pretty(date)+".":"Illustrative demo posts. Connect a Tumblr API key for real history."}</p></div><div className={"tt-api-chip "+(configured?"ready":"offline")}>{configured?<><Wifi size={13}/> API connected</>:<><WifiOff size={13}/> {configured===null?"Checking…":"Demo only"}</>}</div></div>}
+    {!immersive&&!pinnedMode&&<div className="tt-import-box">
       <div className="tt-import-head"><span><Archive size={16}/> HISTORICAL POST FINDER</span><span>READ-ONLY · ORIGINAL DATES</span></div>
       <div className="tt-source-switch"><button onClick={()=>{setSource("blog");setMode(configured?"live":"sample")}} className={source==="blog"?"active":""}>By blog</button><button onClick={()=>{setSource("tag");setMode(configured?"live":"sample")}} className={source==="tag"?"active":""}>By tag</button></div>
       <form className="tt-import-form" onSubmit={submit}>
@@ -110,12 +110,13 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
       {!configured&&configured!==null&&<div className="tt-setup-message"><LockKeyhole size={16}/><span>Real Tumblr retrieval is installed but needs its private API key in Cloudflare. Until then, you can preview the interface with sample posts. <a href="https://www.tumblr.com/oauth/apps" target="_blank" rel="noopener noreferrer">Register a Tumblr application ↗</a></span></div>}
       {configured&&<div className="tt-live-toggle"><button className={mode==="live"?"active":""} onClick={()=>setMode("live")}><Wifi size={13}/> Real Tumblr posts</button><button className={mode==="sample"?"active":""} onClick={()=>setMode("sample")}><ImageIcon size={13}/> Sample preview</button></div>}
     </div>}
-    <div className="tt-filterrow"><span className="tt-post-count">{loading?"Retrieving archive…":filtered.length+" posts displayed"} {effectiveMode==="live"&&!pinnedMode&&<small>· up to {pretty(date)}</small>}</span><div className="tt-filtertools"><label><SlidersHorizontal size={13}/><select value={type} onChange={e=>setType(e.target.value)} aria-label="Filter post type"><option value="all">All posts</option><option value="photo">Photos</option><option value="text">Text</option><option value="quote">Quotes</option><option value="video">Videos</option><option value="audio">Audio</option><option value="link">Links</option></select></label><label><Search size={13}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter loaded posts…" aria-label="Filter displayed posts"/></label></div></div>
+    {(!immersive||tab==="explore"||type!=="all")&&<div className="tt-filterrow"><span className="tt-post-count">{loading?"Loading posts…":filtered.length+" posts"} {!immersive&&effectiveMode==="live"&&!pinnedMode&&<small>· up to {pretty(date)}</small>}</span><div className="tt-filtertools"><label><SlidersHorizontal size={13}/><select value={type} onChange={e=>setType(e.target.value)} aria-label="Filter post type"><option value="all">All posts</option><option value="photo">Photos</option><option value="text">Text</option><option value="quote">Quotes</option><option value="video">Videos</option><option value="audio">Audio</option><option value="link">Links</option></select></label><label><Search size={13}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter loaded posts…" aria-label="Filter displayed posts"/></label></div></div>}
+    {effectiveMode==="pending"&&!pinnedMode&&<div className="tt-loading"><Loader2 size={24} className="rotating"/><p>Loading posts…</p></div>}
     {error&&<div className="tt-error"><AlertCircle size={16}/><span>{error}</span><button onClick={()=>{setMode("sample");setError("")}}>View samples</button></div>}
-    {loading&&posts.length===0&&effectiveMode==="live"&&!pinnedMode&&<div className="tt-loading"><Loader2 size={24} className="rotating"/><p>Searching the historical archive…</p></div>}
-    {!loading&&filtered.length===0&&<div className="tt-empty"><FolderOpen size={30}/><strong>No matching posts</strong><p>{pinnedMode?"Save or like a post first.":effectiveMode==="live"?"Tumblr returned no public posts matching this date and source. Try a different tag, blog, or cutoff.":"Try a later cutoff date or another post type."}</p></div>}
+    {loading&&posts.length===0&&effectiveMode==="live"&&!pinnedMode&&<div className="tt-loading"><Loader2 size={24} className="rotating"/><p>Loading posts…</p></div>}
+    {effectiveMode!=="pending"&&!loading&&filtered.length===0&&<div className="tt-empty"><FolderOpen size={30}/><strong>No matching posts</strong><p>{pinnedMode?"Like or save some posts first.":effectiveMode==="live"?"No posts found. Try another blog, tag, or date.":"Try another date or post type."}</p></div>}
     <div className="tt-post-list">{filtered.map(p=><PostCard key={p.id} post={p} liked={!!liked[p.id]} saved={!!saved[p.id]} onLike={like} onSave={save} onTag={onTag} onBlog={onBlog}/>)}</div>
-    {effectiveMode==="live"&&!pinnedMode&&cursor.hasMore&&<button className="tt-load-more" disabled={loading} onClick={loadMore}>{loading?<Loader2 size={15} className="rotating"/>:<Plus size={15}/>} {loading?"Loading…":"Load 20 more historical posts"}</button>}
-    <div className="tt-feed-end">✦ {effectiveMode==="live"?"Archive results depend on the content still accessible through Tumblr's API.":"Sample posts are illustrative, not authentic Tumblr records."} ✦</div>
+    {effectiveMode==="live"&&!pinnedMode&&cursor.hasMore&&<button className="tt-load-more" disabled={loading} onClick={loadMore}>{loading?<Loader2 size={15} className="rotating"/>:<Plus size={15}/>} {loading?"Loading…":"Load more posts"}</button>}
+    {(!immersive||effectiveMode==="sample")&&<div className="tt-feed-end">{effectiveMode==="sample"?"Sample posts — not from Tumblr":"Posts depend on what is publicly available from Tumblr."}</div>}
   </section>;
 }
