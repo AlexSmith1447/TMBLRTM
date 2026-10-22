@@ -1,122 +1,204 @@
-import React,{useEffect,useMemo,useRef,useState} from "react";
-import {AlertCircle,Archive,ArrowUpRight,Bookmark,Calendar,Camera,Check,ChevronDown,ExternalLink,Heart,Image as ImageIcon,Loader2,RefreshCw,Search,SlidersHorizontal,Tag,Wifi,WifiOff,Plus,Repeat2,ArrowRight,FolderOpen,LockKeyhole} from "lucide-react";
+import React,{useEffect,useMemo,useState,useRef,useCallback} from "react";
+import {AlertCircle,ArrowLeft,ArrowRight,ArrowUpRight,Bookmark,CalendarDays,Camera,Check,ChevronLeft,ChevronRight,ExternalLink,Heart,Image as ImageIcon,Loader2,Plus,Repeat2,Search,SlidersHorizontal,Users,X,FolderOpen,LayoutGrid,Music,Film,Quote,Link2} from "lucide-react";
+import PhotoViewer from "./PhotoViewer.jsx";
 import "./live.css";
+import "./blog.css";
 
-const SAMPLES=[
-  {id:"demo-1",blog:"afterhours",date:"2012-06-12",timestamp:1339459200,type:"photo",title:"",text:"the summer lasts forever when you're seventeen",images:["https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1000&q=85"],tags:["summer","nostalgia","photography"],notes:1284,url:null,demo:true},
-  {id:"demo-2",blog:"moonchild",date:"2011-11-19",timestamp:1321660800,type:"quote",quote:"We are all in the gutter, but some of us are looking at the stars.",quoteSource:"— Oscar Wilde",text:"",images:[],tags:["quotes","literature"],notes:2743,url:null,demo:true},
-  {id:"demo-3",blog:"internetghost",date:"2012-04-21",timestamp:1334966400,type:"text",title:"little things i miss",text:"the sound of AIM messages. old profile songs. spending entire afternoons customizing your blog theme. the internet felt like a place you could actually get lost in.",images:[],tags:["internet","nostalgia","personal"],notes:482,url:null,demo:true},
-  {id:"demo-4",blog:"midnightflowers",date:"2012-09-25",timestamp:1348531200,type:"photo",text:"keep the blurry ones. they're usually the best memories.",images:["https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1000&q=85"],tags:["flowers","film","photography"],notes:1026,url:null,demo:true},
-  {id:"demo-5",blog:"quietplaces",date:"2011-06-22",timestamp:1308700800,type:"photo",text:"take the long way home",images:["https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1000&q=85"],tags:["nature","summer","adventure"],notes:1863,url:null,demo:true}
-];
-const read=(k,defaultValue)=>{try{return JSON.parse(localStorage.getItem(k))??defaultValue}catch{return defaultValue}};
-const cutoffSeconds=(date)=>Math.floor(Date.parse(date+"T23:59:59Z")/1000)+1;
-const pretty=date=>new Date(date+"T12:00:00Z").toLocaleDateString("en-US",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"});
-const isPhoto=post=>post.images?.length>0;
-function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
-  const avatar=post.blog?.slice(0,1).toUpperCase()||"T";
-  return <article className="tt-post" aria-label={"Post by "+post.blog}>
-    <div className="tt-avatar" aria-hidden="true">{avatar}</div>
-    <div className="tt-post-paper">
-      <div className="tt-post-head">
-        <div><button type="button" onClick={()=>onBlog?.(post.blog)} className="tt-post-blog">{post.blog}</button>{post.reblogFrom&&<span className="tt-reblog"> <Repeat2 size={11}/> from {post.reblogFrom}</span>}<small>{pretty(post.date)}{post.demo?" · SAMPLE":""}</small></div>
-        {post.url&&<a href={post.url} target="_blank" rel="noopener noreferrer" className="tt-post-open" title="View original Tumblr post"><ExternalLink size={15}/></a>}
-      </div>
-      {post.title&&<h3 className="tt-post-title">{post.title}</h3>}
-      {post.type==="quote"&&post.quote&&<blockquote className="tt-quote">“{post.quote}”<small>{post.quoteSource}</small></blockquote>}
-      {post.images?.length>0&&<div className={"tt-photos"+(post.images.length>1?" multiple":"")}>{post.images.slice(0,6).map((url,i)=><a href={post.url||url} target="_blank" rel="noopener noreferrer" key={url+i} aria-label="Open photo or original post"><img src={url} alt={"Image "+(i+1)+" from "+post.blog} loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display="none"}}/></a>)}</div>}
-      {post.text&&post.type!=="quote"&&<p className="tt-post-text">{post.text}</p>}
-      {!post.text&&!post.images?.length&&!post.quote&&<p className="tt-post-text empty">This post's media or embed cannot be displayed here. Use the original-post link if available.</p>}
-      {post.tags?.length>0&&<div className="tt-post-tags">{post.tags.slice(0,15).map(tag=><button key={tag} onClick={()=>onTag(tag)}>#{tag.replace(/\s/g,"")}</button>)}</div>}
-      <div className="tt-post-footer"><span>{(post.notes||0).toLocaleString()} notes</span><div>
-        <button className={saved?"marked":""} onClick={()=>onSave(post)} aria-label={saved?"Remove bookmark":"Save post"} title="Save to your local archive"><Bookmark size={17} fill={saved?"currentColor":"none"}/></button>
-        {post.url&&<a href={post.url} target="_blank" rel="noopener noreferrer" aria-label="View on Tumblr" title="View on Tumblr"><ArrowUpRight size={17}/></a>}
-        <button className={liked?"hearted":""} onClick={()=>onLike(post)} aria-label={liked?"Unlike":"Like post"} title="Local like"><Heart size={19} fill={liked?"currentColor":"none"}/></button>
-      </div></div>
-    </div>
-  </article>;
+const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}};
+const cutoff=date=>Math.floor(Date.parse(date+"T23:59:59Z")/1000)+1;
+const monthStart=m=>Math.floor(Date.parse(m+"-01T00:00:00Z")/1000);
+const monthEnd=m=>{const [y,mo]=m.split("-").map(Number);return Math.floor(Date.UTC(y,mo,1)/1000)};
+const pretty=date=>new Date(date+"T12:00:00Z").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",timeZone:"UTC"});
+const formatMonth=m=>new Date(m+"-01T12:00:00Z").toLocaleDateString("en-US",{year:"numeric",month:"long",timeZone:"UTC"});
+const avatar=name=>"https://api.tumblr.com/v2/blog/"+encodeURIComponent(name+".tumblr.com")+"/avatar/64";
+const merge=(a,b)=>{const m=new Map();for(const x of [...a,...b])m.set(x.id,x);return [...m.values()].sort((x,y)=>y.timestamp-x.timestamp)};
+const validBlog=name=>/^[a-z0-9_-]{1,64}$/.test(name);
+async function fetchPage({blog,tag,before,offset=0,limit=12,signal}){
+ const url=new URLSearchParams({mode:blog?"blog":"tag",[blog?"blog":"tag"]:blog||tag,before:String(before),limit:String(limit),offset:String(offset)});
+ const response=await fetch("/api/tumblr?"+url.toString(),{signal});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(data.error||"Tumblr is unavailable.");
+ return data;
 }
-
-export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],initialType="all",immersive=false}){
-  const [configured,setConfigured]=useState(null);
-  const [source,setSource]=useState("blog");
-  const [blog,setBlog]=useState("staff");
-  const [tag,setTag]=useState("nostalgia");
-  const [blogDraft,setBlogDraft]=useState("staff");
-  const [tagDraft,setTagDraft]=useState("nostalgia");
-  const [posts,setPosts]=useState([]);
-  const [loading,setLoading]=useState(false);
-  const [error,setError]=useState("");
-  const [cursor,setCursor]=useState({offset:0,before:null,hasMore:false});
-  const [type,setType]=useState(initialType);
-  const [query,setQuery]=useState("");
-  const [mode,setMode]=useState("live");
-  const [range,setRange]=useState("all");
-  const [liked,setLiked]=useState(()=>read("tm2-likes",{}));
-  const [saved,setSaved]=useState(()=>read("tm2-saved",{}));
-  const [archiveNames,setArchiveNames]=useState(()=>read("tm2-imported-blogs",["staff"]));
-  const [lastSource,setLastSource]=useState("blog:staff");
-  useEffect(()=>{let active=true;fetch("/api/tumblr?mode=status").then(r=>r.json()).then(j=>{if(active){setConfigured(!!j.configured);if(!j.configured)setMode("sample")}}).catch(()=>{if(active){setConfigured(false);setMode("sample")}});return()=>{active=false}},[]);
-  useEffect(()=>{localStorage.setItem("tm2-likes",JSON.stringify(liked))},[liked]);
-  useEffect(()=>{localStorage.setItem("tm2-saved",JSON.stringify(saved))},[saved]);
-  useEffect(()=>{localStorage.setItem("tm2-imported-blogs",JSON.stringify(archiveNames))},[archiveNames]);
-  useEffect(()=>{if(initialTag){setTag(initialTag);setTagDraft(initialTag);setSource("tag");setMode("live")}else if(initialBlog){setBlog(initialBlog);setBlogDraft(initialBlog);setSource("blog");setMode("live")}else if(tab==="explore"){setSource("tag")}else if(tab==="dashboard"){setSource("blog");setBlog("staff")}},[initialTag,initialBlog,tab]);
-  const effectiveMode=mode==="live"?(configured===null?"pending":configured?"live":"sample"):"sample";
-  useEffect(()=>{setType(initialType)},[initialType]);
-  const fetchAbort=useRef(null);
-  const currentSource=source==="blog"?"blog:"+blog:"tag:"+tag;
-  const requestPage=async ({append=false,signal}={})=>{
-    const before=append&&source==="tag"?cursor.before:cutoffSeconds(date);
-    const offset=append&&source==="blog"?cursor.offset:0;
-    const params=new URLSearchParams({mode:source,limit:"20",before:String(before||cutoffSeconds(date)),offset:String(offset),[source]:source==="blog"?blog:tag});
-    const res=await fetch("/api/tumblr?"+params.toString(),{signal});
-    let data;try{data=await res.json()}catch{throw new Error("The server returned an unreadable response.")}
-    if(!res.ok)throw new Error(data.error||"Tumblr request failed ("+res.status+").");
-    if(!Array.isArray(data.posts))throw new Error("Tumblr returned an unexpected archive response.");
-    const newPosts=data.posts.filter(p=>p.date&&p.date<=date);
-    setPosts(old=>{
-      if(!append)return newPosts;
-      const ids=new Set(old.map(p=>p.id));
-      return [...old,...newPosts.filter(p=>!ids.has(p.id))];
-    });
-    setCursor({offset:data.nextOffset||0,before:data.nextBefore,hasMore:!!data.hasMore&&newPosts.length>0});
-    setLastSource(currentSource);
+function Avatar({name,size="md"}){
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>setFailed(false),[name]);
+ return <span className={"tm-blog-avatar "+size}>{!failed&&name?<img src={avatar(name)} alt="" loading="lazy" onError={()=>setFailed(true)}/>:name?.slice(0,1).toUpperCase()||"t"}</span>;
+}
+function PhotoGrid({post,onOpen}){
+ const count=post.images?.length||0;
+ if(!count)return null;
+ return <div className={"tm-photoset count-"+Math.min(6,count)}>
+  {post.images.slice(0,10).map((url,i)=><button key={url+i} className={"tm-photo-cell image-"+i} type="button" onClick={()=>onOpen(i)} title={"View photo "+(i+1)}>
+    <img src={url} alt={"Photo "+(i+1)+" by "+post.blog} loading="lazy" referrerPolicy="no-referrer"/>
+    {i===5&&count>6&&<span className="tm-photo-more">+{count-6} photos</span>}
+  </button>)}
+ </div>;
+}
+function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
+ const [trailExpanded,setTrailExpanded]=useState(false);
+ const [viewer,setViewer]=useState(null);
+ const trail=Array.isArray(post.trail)?post.trail:[];
+ return <article className="tt-post" aria-label={"Tumblr post by "+post.blog}>
+  <button type="button" className="tm-avatar-button" onClick={()=>onBlog(post.blog)} title={"Visit "+post.blog}><Avatar name={post.blog}/></button>
+  <div className="tt-post-paper">
+   <div className="tt-post-head"><div className="tm-author">
+    <button type="button" className="tt-post-blog" onClick={()=>onBlog(post.blog)}>{post.blog}</button>
+    {post.reblogFrom&&post.reblogFrom!==post.blog&&<button className="tm-reblog-source" onClick={()=>onBlog(post.reblogFrom)} title={"View "+post.reblogFrom}><Repeat2 size={12}/>{post.reblogFrom}</button>}
+    <small>{pretty(post.date)}{post.demo?" · SAMPLE":""}</small>
+   </div>{post.url&&<a href={post.url} className="tt-post-open" title="View original post" rel="noopener noreferrer" target="_blank"><ExternalLink size={15}/></a>}</div>
+   {post.title&&<h3 className="tt-post-title">{post.title}</h3>}
+   {post.type==="quote"&&post.quote&&<blockquote className="tt-quote">“{post.quote}”<small>{post.quoteSource}</small></blockquote>}
+   {post.images?.length>0&&<PhotoGrid post={post} onOpen={setViewer}/>}
+   {post.text&&post.type!=="quote"&&<p className="tt-post-text">{post.text}</p>}
+   {post.type==="audio"&&<div className="tm-media-block"><Music size={22}/><span>{post.audio||"Audio post"}</span></div>}
+   {post.type==="video"&&<div className="tm-media-block"><Film size={22}/><span>Video post</span>{post.videoUrl&&<a href={post.videoUrl} target="_blank" rel="noopener noreferrer">Watch <ExternalLink size={12}/></a>}</div>}
+   {!post.text&&!post.images?.length&&!post.quote&&!["audio","video"].includes(post.type)&&<p className="tt-post-text empty">View the original post for its full content.</p>}
+   {trail.length>0&&<div className="tm-trail">
+     <button className="tm-trail-toggle" onClick={()=>setTrailExpanded(!trailExpanded)}><Repeat2 size={14}/> {trail.length} {trail.length===1?"reblog":"reblogs"} in this trail {trailExpanded?<ChevronLeft size={13}/>:<ChevronRight size={13}/>}</button>
+     {trailExpanded&&<div className="tm-trail-entries">{trail.map((t,i)=><div key={i} className="tm-trail-entry"><button onClick={()=>onBlog(t.blog)}>{t.blog}</button>{t.text&&<p>{t.text}</p>}{t.images?.length>0&&<div className="tm-trail-images">{t.images.map((src,j)=><img src={src} key={src+j} alt="Reblogged image" loading="lazy"/>)}</div>}</div>)}</div>}
+   </div>}
+   {post.tags?.length>0&&<div className="tt-post-tags">{post.tags.slice(0,15).map(t=><button onClick={()=>onTag(t)} key={t}>#{t.replace(/\s/g,"")}</button>)}</div>}
+   <div className="tt-post-footer"><span>{(post.notes||0).toLocaleString()} notes</span><div>
+     <button className={saved?"marked":""} onClick={()=>onSave(post)} title="Bookmark locally" aria-label={saved?"Remove bookmark":"Bookmark"}><Bookmark size={17} fill={saved?"currentColor":"none"}/></button>
+     {post.url&&<a href={post.url} title="Open original Tumblr post" target="_blank" rel="noopener noreferrer"><ArrowUpRight size={17}/></a>}
+     <button className={liked?"hearted":""} onClick={()=>onLike(post)} title="Like locally" aria-label={liked?"Unlike":"Like"}><Heart size={20} fill={liked?"currentColor":"none"}/></button>
+   </div></div>
+  </div>
+  {viewer!==null&&<PhotoViewer images={post.images} initialIndex={viewer} postUrl={post.url} onClose={()=>setViewer(null)}/>}
+ </article>;
+}
+const themes=["classic","midnight","paper","pastel"];
+function themeFor(name){let n=0;for(const c of name||"")n=(n*31+c.charCodeAt(0))>>>0;return themes[n%themes.length]}
+function BlogHeader({name,info,followed,onToggle,month,onMonth,cutoffDate}){
+ const [showMonths,setShowMonths]=useState(false);
+ const [year,setYear]=useState(Number(cutoffDate.slice(0,4)));
+ const [theme,setTheme]=useState(()=>read("tm-blog-themes",{})[name]||themeFor(name));
+ useEffect(()=>{setTheme(read("tm-blog-themes",{})[name]||themeFor(name));setShowMonths(false);setYear(Number(cutoffDate.slice(0,4)))},[name,cutoffDate.slice(0,4)]);
+ const switchTheme=value=>{setTheme(value);const all=read("tm-blog-themes",{});localStorage.setItem("tm-blog-themes",JSON.stringify({...all,[name]:value}))};
+ const currentMonth=cutoffDate.slice(0,7);
+ return <div className={"tm-blog-layout theme-"+theme}>
+  <div className="tm-blog-cover">
+   <div className="tm-blog-cover-inner"><Avatar name={name} size="xl"/><div><small>tumblr</small><h2>{info?.title||name}</h2><p>{info?.description||name+".tumblr.com"}</p></div></div>
+  </div>
+  <div className="tm-blog-navigation"><button className={!month?"selected":""} onClick={()=>onMonth(null)}>Home</button><button className={month?"selected":""} onClick={()=>setShowMonths(!showMonths)}><LayoutGrid size={13}/> Archive</button><span className="tm-blog-spacer"/><button className="tm-blog-follow" onClick={()=>onToggle(name)}>{followed?<><Check size={13}/> Following</>:<><Plus size={13}/> Follow</>}</button><a href={info?.url||"https://"+name+".tumblr.com"} target="_blank" rel="noopener noreferrer" title="View original blog"><ExternalLink size={14}/></a></div>
+  {showMonths&&<div className="tm-archive-calendar">
+   <div className="tm-archive-years"><button onClick={()=>setYear(y=>Math.max(2009,y-1))}><ChevronLeft size={17}/></button><strong>{year}</strong><button onClick={()=>setYear(y=>Math.min(Number(cutoffDate.slice(0,4)),y+1))}><ChevronRight size={17}/></button></div>
+   <div className="tm-archive-months">{Array.from({length:12},(_,i)=>{const m=String(year)+"-"+String(i+1).padStart(2,"0");const future=m>currentMonth;return <button key={m} disabled={future} className={month===m?"active":""} onClick={()=>{onMonth(m);setShowMonths(false)}}>{new Date(Date.UTC(year,i,1)).toLocaleDateString("en-US",{month:"short",timeZone:"UTC"})}</button>})}</div>
+   <p>Browse posts from a month in this blog.</p>
+  </div>}
+  <div className="tm-theme-selection" aria-label="Blog theme"><small>Theme:</small>{themes.map(t=><button key={t} className={theme===t?"active":""} onClick={()=>switchTheme(t)} title={"Apply "+t+" theme"}>{t}</button>)}</div>
+  {month&&<div className="tm-month-banner"><span>{formatMonth(month)}</span><button onClick={()=>onMonth(null)}>View all posts <X size={13}/></button></div>}
+ </div>;
+}
+function FeedEmpty({message,icon:Icon=FolderOpen}){return <div className="tt-empty"><Icon size={30}/><p>{message}</p></div>}
+export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],onToggleFollow,initialType="all",immersive=true}){
+ const [configured,setConfigured]=useState(null);
+ const [posts,setPosts]=useState([]);
+ const [loading,setLoading]=useState(false);
+ const [moreLoading,setMoreLoading]=useState(false);
+ const [error,setError]=useState("");
+ const [partial,setPartial]=useState("");
+ const [cursors,setCursors]=useState({});
+ const [blogInfo,setBlogInfo]=useState(null);
+ const [month,setMonth]=useState(null);
+ const [type,setType]=useState(initialType);
+ const [query,setQuery]=useState("");
+ const [liked,setLiked]=useState(()=>read("tm2-likes",{}));
+ const [saved,setSaved]=useState(()=>read("tm2-saved",{}));
+ const requestGuard=useRef(null);
+ const tabPinned=tab==="likes"||tab==="saved";
+ const isBlog=!!initialBlog;
+ const isTag=!!initialTag||tab==="explore";
+ const isDashboard=!tabPinned&&!isBlog&&!isTag;
+ const names=useMemo(()=>[...new Set(followed.filter(validBlog))].slice(0,6),[followed.join("|")]);
+ const namesKey=names.join("|");
+ const singleName=isBlog?initialBlog:null;
+ const effectiveTag=initialTag||"nostalgia";
+ useEffect(()=>{let active=true;fetch("/api/tumblr?mode=status").then(r=>r.json()).then(data=>{if(active)setConfigured(!!data.configured)}).catch(()=>{if(active)setConfigured(false)});return()=>{active=false}},[]);
+ useEffect(()=>{localStorage.setItem("tm2-likes",JSON.stringify(liked))},[liked]);
+ useEffect(()=>{localStorage.setItem("tm2-saved",JSON.stringify(saved))},[saved]);
+ useEffect(()=>{setType(initialType)},[initialType]);
+ useEffect(()=>{setMonth(null)},[singleName]);
+ useEffect(()=>{if(!isBlog){setBlogInfo(null);return}
+  let active=true;const controller=new AbortController();
+  fetch("/api/tumblr?"+new URLSearchParams({mode:"info",blog:initialBlog}),{signal:controller.signal}).then(r=>r.json()).then(d=>{if(active&&d.blog)setBlogInfo(d.blog)}).catch(()=>{});
+  return()=>{active=false;controller.abort()};
+ },[initialBlog,isBlog]);
+ const before=Math.min(cutoff(date),month?monthEnd(month):Infinity);
+ const from=month?monthStart(month):null;
+ const queryKey=[date,tab,initialBlog,initialTag,namesKey,month,configured].join("::");
+ const requestOne=async ({name,tag,offset=0,beforeValue,batch=12,signal})=>{
+  const data=await fetchPage({blog:name,tag,before:beforeValue,offset,limit:batch,signal});
+  const good=data.posts.filter(p=>p.date&&p.date<=date&&(!from||p.timestamp>=from));
+  const reachedBefore=!!from&&data.posts.some(p=>p.timestamp<from);
+  return {name:name||"__tag__",posts:good,next:{offset:data.nextOffset||offset+data.posts.length,before:data.nextBefore,hasMore:!!data.hasMore&&!reachedBefore&&data.posts.length>0}};
+ };
+ useEffect(()=>{
+  if(configured!==true||tabPinned)return;
+  const controller=new AbortController();requestGuard.current?.abort();requestGuard.current=controller;
+  setPosts([]);setCursors({});setError("");setPartial("");setLoading(true);
+  const run=async()=>{
+   const sources=isDashboard?names.map(name=>({name})):isBlog?[{name:singleName}]:[{tag:effectiveTag}];
+   if(!sources.length){setLoading(false);return}
+   const results=await Promise.allSettled(sources.map(x=>requestOne({...x,beforeValue:before,signal:controller.signal,batch:12})));
+   if(controller.signal.aborted)return;
+   const good=results.filter(r=>r.status==="fulfilled").map(r=>r.value);
+   const failed=results.filter(r=>r.status==="rejected"&&r.reason?.name!=="AbortError");
+   if(!good.length&&failed.length)setError(failed[0].reason.message||"Could not load posts.");
+   else if(failed.length)setPartial(failed.length+" blog"+(failed.length===1?"":"s")+" couldn't be loaded.");
+   setPosts(merge([],good.flatMap(r=>r.posts)));
+   setCursors(Object.fromEntries(good.map(r=>[r.name,r.next])));
   };
-  useEffect(()=>{
-    if(effectiveMode!=="live"||tab==="likes"||tab==="saved")return;
-    const controller=new AbortController();fetchAbort.current?.abort();fetchAbort.current=controller;
-    setLoading(true);setError("");setPosts([]);setCursor({offset:0,before:null,hasMore:false});
-    const timer=setTimeout(()=>requestPage({signal:controller.signal}).catch(e=>{if(e.name!=="AbortError")setError(e.message)}).finally(()=>{if(!controller.signal.aborted)setLoading(false)}),450);
-    return()=>{clearTimeout(timer);controller.abort()};
-  },[effectiveMode,source,blog,tag,date,tab]);
-  const submit=(e)=>{e.preventDefault();setMode("live");setError("");if(source==="blog"){const value=blogDraft.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\.tumblr\.com.*$/,"").replace(/\/.*$/,"");if(!/^[a-z0-9_-]{1,64}$/.test(value)){setError("Enter a valid Tumblr username, such as staff.");return}setBlog(value);setArchiveNames(old=>[value,...old.filter(x=>x!==value)].slice(0,20))}else{const value=tagDraft.trim().replace(/^#/,"");if(!value){setError("Enter a tag to search.");return}setTag(value)}};
-  const like=post=>setLiked(old=>{const next={...old};if(next[post.id])delete next[post.id];else next[post.id]=post;return next});
-  const save=post=>setSaved(old=>{const next={...old};if(next[post.id])delete next[post.id];else next[post.id]=post;return next});
-  const archivePosts=effectiveMode==="sample"?SAMPLES.filter(p=>p.date<=date):posts;
-  const viewPosts=tab==="likes"?Object.values(liked).filter(p=>p.date<=date):tab==="saved"?Object.values(saved).filter(p=>p.date<=date):archivePosts;
-  const filtered=useMemo(()=>viewPosts.filter(p=>(type==="all"||(type==="photo"?isPhoto(p):p.type===type))&&(!query||[p.blog,p.title,p.text,p.quote,...(p.tags||[])].filter(Boolean).join(" ").toLowerCase().includes(query.toLowerCase()))).sort((a,b)=>b.date.localeCompare(a.date)),[viewPosts,type,query]);
-  const loadMore=async()=>{if(loading||!cursor.hasMore)return;setLoading(true);setError("");try{await requestPage({append:true})}catch(e){setError(e.message)}finally{setLoading(false)}};
-  const pinnedMode=tab==="saved"||tab==="likes";
-  return <section className={"tt-live"+(immersive?" tt-immersive":"")}>
-    {!immersive&&<div className="tt-feed-intro"><div><div className="tt-overline">{pinnedMode?"YOUR LOCAL COLLECTION":effectiveMode==="live"?"LIVE TUMBLR ARCHIVE":"HISTORICAL PREVIEW"}</div><h2>{tab==="liked"||tab==="likes"?"Liked posts":tab==="saved"?"Saved posts":initialBlog?initialBlog:initialTag?"#"+initialTag:tab==="following"?"Following archive":source==="blog"?"Explore a Tumblr blog":"Explore a historical tag"}</h2><p>{pinnedMode?"These posts are stored in this browser.":effectiveMode==="live"?"Surviving public Tumblr posts published no later than "+pretty(date)+".":"Illustrative demo posts. Connect a Tumblr API key for real history."}</p></div><div className={"tt-api-chip "+(configured?"ready":"offline")}>{configured?<><Wifi size={13}/> API connected</>:<><WifiOff size={13}/> {configured===null?"Checking…":"Demo only"}</>}</div></div>}
-    {!immersive&&!pinnedMode&&<div className="tt-import-box">
-      <div className="tt-import-head"><span><Archive size={16}/> HISTORICAL POST FINDER</span><span>READ-ONLY · ORIGINAL DATES</span></div>
-      <div className="tt-source-switch"><button onClick={()=>{setSource("blog");setMode(configured?"live":"sample")}} className={source==="blog"?"active":""}>By blog</button><button onClick={()=>{setSource("tag");setMode(configured?"live":"sample")}} className={source==="tag"?"active":""}>By tag</button></div>
-      <form className="tt-import-form" onSubmit={submit}>
-        <div className="tt-input"><span>{source==="blog"?"tumblr.com/":"#"}</span><input type="text" value={source==="blog"?blogDraft:tagDraft} onChange={e=>source==="blog"?setBlogDraft(e.target.value):setTagDraft(e.target.value)} placeholder={source==="blog"?"staff":"creepypasta"} aria-label={source==="blog"?"Tumblr username":"Tumblr tag"} maxLength={120}/></div>
-        <button type="submit" className="tt-fetch" disabled={!configured}><Search size={16}/> Fetch posts</button>
-      </form>
-      {source==="blog"&&<div className="tt-import-history"><span>Quick access:</span>{archiveNames.slice(0,5).map(name=><button key={name} onClick={()=>{setBlogDraft(name);setBlog(name);setSource("blog");setMode("live")}}>{name}</button>)}{followed.filter(name=>!archiveNames.includes(name)).slice(0,3).map(name=><button key={name} onClick={()=>{setBlogDraft(name);setBlog(name);setSource("blog");setMode("live")}}>{name}</button>)}</div>}
-      {!configured&&configured!==null&&<div className="tt-setup-message"><LockKeyhole size={16}/><span>Real Tumblr retrieval is installed but needs its private API key in Cloudflare. Until then, you can preview the interface with sample posts. <a href="https://www.tumblr.com/oauth/apps" target="_blank" rel="noopener noreferrer">Register a Tumblr application ↗</a></span></div>}
-      {configured&&<div className="tt-live-toggle"><button className={mode==="live"?"active":""} onClick={()=>setMode("live")}><Wifi size={13}/> Real Tumblr posts</button><button className={mode==="sample"?"active":""} onClick={()=>setMode("sample")}><ImageIcon size={13}/> Sample preview</button></div>}
-    </div>}
-    {(!immersive||tab==="explore"||type!=="all")&&<div className="tt-filterrow"><span className="tt-post-count">{loading?"Loading posts…":filtered.length+" posts"} {!immersive&&effectiveMode==="live"&&!pinnedMode&&<small>· up to {pretty(date)}</small>}</span><div className="tt-filtertools"><label><SlidersHorizontal size={13}/><select value={type} onChange={e=>setType(e.target.value)} aria-label="Filter post type"><option value="all">All posts</option><option value="photo">Photos</option><option value="text">Text</option><option value="quote">Quotes</option><option value="video">Videos</option><option value="audio">Audio</option><option value="link">Links</option></select></label><label><Search size={13}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter loaded posts…" aria-label="Filter displayed posts"/></label></div></div>}
-    {effectiveMode==="pending"&&!pinnedMode&&<div className="tt-loading"><Loader2 size={24} className="rotating"/><p>Loading posts…</p></div>}
-    {error&&<div className="tt-error"><AlertCircle size={16}/><span>{error}</span><button onClick={()=>{setMode("sample");setError("")}}>View samples</button></div>}
-    {loading&&posts.length===0&&effectiveMode==="live"&&!pinnedMode&&<div className="tt-loading"><Loader2 size={24} className="rotating"/><p>Loading posts…</p></div>}
-    {effectiveMode!=="pending"&&!loading&&filtered.length===0&&<div className="tt-empty"><FolderOpen size={30}/><strong>No matching posts</strong><p>{pinnedMode?"Like or save some posts first.":effectiveMode==="live"?"No posts found. Try another blog, tag, or date.":"Try another date or post type."}</p></div>}
-    <div className="tt-post-list">{filtered.map(p=><PostCard key={p.id} post={p} liked={!!liked[p.id]} saved={!!saved[p.id]} onLike={like} onSave={save} onTag={onTag} onBlog={onBlog}/>)}</div>
-    {effectiveMode==="live"&&!pinnedMode&&cursor.hasMore&&<button className="tt-load-more" disabled={loading} onClick={loadMore}>{loading?<Loader2 size={15} className="rotating"/>:<Plus size={15}/>} {loading?"Loading…":"Load more posts"}</button>}
-    {(!immersive||effectiveMode==="sample")&&<div className="tt-feed-end">{effectiveMode==="sample"?"Sample posts — not from Tumblr":"Posts depend on what is publicly available from Tumblr."}</div>}
-  </section>;
+  run().finally(()=>{if(!controller.signal.aborted)setLoading(false)});
+  return()=>controller.abort();
+ },[queryKey]);
+ const local=tab==="likes"?Object.values(liked):tab==="saved"?Object.values(saved):[];
+ const base=tabPinned?local:posts;
+ const viewPosts=useMemo(()=>base.filter(p=>p.date<=date&&
+   (type==="all"||(type==="photo"?(p.images||[]).length>0:p.type===type))&&
+   (!query||[p.blog,p.title,p.text,p.quote,...(p.tags||[])].filter(Boolean).join(" ").toLowerCase().includes(query.toLowerCase()))
+ ).sort((a,b)=>b.timestamp-a.timestamp),[base,type,query,date]);
+ const hasMore=Object.values(cursors).some(x=>x.hasMore);
+ const like=post=>setLiked(old=>{const x={...old};if(x[post.id])delete x[post.id];else x[post.id]=post;return x});
+ const save=post=>setSaved(old=>{const x={...old};if(x[post.id])delete x[post.id];else x[post.id]=post;return x});
+ const loadMore=async()=>{
+  if(moreLoading||loading||!hasMore)return;
+  setMoreLoading(true);setError("");
+  const sources=Object.entries(cursors).filter(([,v])=>v.hasMore);
+  const results=await Promise.allSettled(sources.map(([name,v])=>requestOne({
+   name:name==="__tag__"?null:name,tag:name==="__tag__"?effectiveTag:null,
+   offset:name==="__tag__"?0:v.offset,
+   beforeValue:name==="__tag__"?(v.before||before):before,
+   batch:12
+  })));
+  const good=results.filter(r=>r.status==="fulfilled").map(r=>r.value);
+  const failed=results.filter(r=>r.status==="rejected");
+  if(good.length){setPosts(old=>merge(old,good.flatMap(r=>r.posts)));setCursors(old=>({...old,...Object.fromEntries(good.map(x=>[x.name,x.next]))}))}
+  if(failed.length)setError(good.length?"Some posts could not be loaded.":"Could not load more posts.");
+  setMoreLoading(false);
+ };
+ return <section className={"tt-live"+(immersive?" tt-immersive":"")}>
+  {isBlog&&<BlogHeader name={singleName} info={blogInfo} followed={followed.includes(singleName)} onToggle={onToggleFollow||(()=>{})} month={month} onMonth={setMonth} cutoffDate={date}/>}
+  {isDashboard&&names.length===0&&<FeedEmpty message="Follow some blogs using the sidebar, then their posts will appear here." icon={Users}/>}
+  {isDashboard&&names.length>0&&<div className="tm-feed-source"><Users size={13}/> Following {names.length} {names.length===1?"blog":"blogs"} <span>·</span> <button onClick={()=>onBlog(names[0])}>View {names[0]} <ArrowRight size={12}/></button></div>}
+  {(isTag||isBlog||type!=="all")&&<div className="tt-filterrow">
+    <span className="tt-post-count">{isTag?"#"+effectiveTag:isBlog?singleName:"Posts"} {loading?"":viewPosts.length+" posts"}</span>
+    <div className="tt-filtertools">
+      <label><SlidersHorizontal size={13}/><select value={type} onChange={e=>setType(e.target.value)} aria-label="Filter post type">
+        <option value="all">All posts</option><option value="photo">Photos</option><option value="text">Text</option><option value="quote">Quotes</option><option value="video">Video</option><option value="audio">Audio</option><option value="link">Links</option>
+      </select></label>
+      <label><Search size={13}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter posts" aria-label="Filter loaded posts"/></label>
+    </div>
+  </div>}
+  {configured===null&&!tabPinned&&<div className="tt-loading"><Loader2 className="rotating"/><p>Loading…</p></div>}
+  {configured===false&&!tabPinned&&<div className="tt-error"><AlertCircle size={16}/> Tumblr connection is unavailable. Check the Time Machine settings.</div>}
+  {loading&&!tabPinned&&<div className="tt-loading"><Loader2 className="rotating"/><p>Loading posts…</p></div>}
+  {partial&&<div className="tm-partial">{partial}</div>}
+  {error&&<div className="tt-error"><AlertCircle size={16}/><span>{error}</span><button onClick={()=>window.location.reload()}>Retry</button></div>}
+  {!loading&&configured===true&&viewPosts.length===0&&!error&&!(isDashboard&&names.length===0)&&<FeedEmpty message={tabPinned?"Nothing here yet.":month?"No posts found for "+formatMonth(month)+".":"No posts here. Try another blog, tag, or date."}/>}
+  {tabPinned&&viewPosts.length===0&&<FeedEmpty message="Your liked and saved posts will show up here."/>}
+  <div className="tt-post-list">{viewPosts.map(p=><PostCard key={p.id} post={p} liked={!!liked[p.id]} saved={!!saved[p.id]} onLike={like} onSave={save} onTag={onTag} onBlog={onBlog}/>)}</div>
+  {!tabPinned&&hasMore&&<button type="button" className="tt-load-more" onClick={loadMore} disabled={moreLoading||loading}>{moreLoading?<Loader2 size={15} className="rotating"/>:<Plus size={15}/>} {moreLoading?"Loading…":"Load more posts"}</button>}
+ </section>;
 }
