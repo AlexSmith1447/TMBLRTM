@@ -27,19 +27,26 @@ function App(){
   const [importValue,setImportValue]=useState("");
   const [search,setSearch]=useState("");
   const [importError,setImportError]=useState("");
+  const [searchOpen,setSearchOpen]=useState(false);
+  const searchRef=useRef(null);
   const drawerCloseRef=useRef(null);
+  useEffect(()=>{const close=e=>{if(!searchRef.current?.contains(e.target))setSearchOpen(false)};document.addEventListener("pointerdown",close);return()=>document.removeEventListener("pointerdown",close)},[]);
   useEffect(()=>localStorage.setItem("tm-date",JSON.stringify(date)),[date]);
   useEffect(()=>localStorage.setItem("tm-dark",JSON.stringify(night)),[night]);
   useEffect(()=>localStorage.setItem("tm-follows",JSON.stringify(savedBlogs)),[savedBlogs]);
   useEffect(()=>localStorage.setItem("tm-posts",JSON.stringify(notes)),[notes]);
   useEffect(()=>{if(!drawer)return;const original=document.body.style.overflow;document.body.style.overflow="hidden";const key=e=>{if(e.key==="Escape")setDrawer(false)};window.addEventListener("keydown",key);drawerCloseRef.current?.focus();return()=>{document.body.style.overflow=original;window.removeEventListener("keydown",key)}},[drawer]);
+  const toggleFollow=name=>setSavedBlogs(prev=>prev.includes(name)?prev.filter(x=>x!==name):[name,...prev]);
   const view=key=>{setTab(key);setTag("");setBlog("");setFilterType("all");setMobile(false)};
   const browseBlog=name=>{setBlog(name);setTag("");setTab("dashboard");setFilterType("all");setDrawer(false);setMobile(false)};
   const browseTag=name=>{setTag(name);setBlog("");setTab("explore");setFilterType("all");setDrawer(false);setMobile(false)};
   const browseType=type=>{setFilterType(type);setTab("dashboard");setTag("");setBlog("")};
   const navigateEvent=event=>{setDate(event.date);browseTag(event.tags?.[0]||"nostalgia")};
   const saveNote=()=>{if(!draft.text.trim())return;const p={id:Date.now(),blog:"my-time-capsule",date,type:"text",title:draft.title,text:draft.text,tags:draft.tags.split(",").map(t=>t.trim().replace(/^#/,"")).filter(Boolean),notes:0};setNotes([p,...notes]);setDraft({title:"",text:"",tags:""});setShowEditor(false);setTab("notes")};
-  const goSearch=e=>{e.preventDefault();const value=search.trim().replace(/^#/,"");if(value){browseTag(value);setSearch("")}};
+  const goSearch=e=>{e.preventDefault();const value=search.trim().replace(/^#/,"");if(value){browseTag(value);setSearch("");setSearchOpen(false)}};
+  const candidateTags=["creepypasta","slenderman","invader zim","nyancat","scene","emo","homestuck","photography","minecraft","gir"];
+  const suggestions=candidateTags.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,5);
+  const matchingBlogs=savedBlogs.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,3);
   const submitImport=e=>{e.preventDefault();const value=importValue.trim().replace(/^#/,"");if(!value){setImportError("Enter a blog or tag.");return}if(importMode==="blog"){const name=validBlog(value);if(!name){setImportError("Enter a valid Tumblr blog name.");return}setSavedBlogs(old=>[name,...old.filter(n=>n!==name)].slice(0,30));browseBlog(name)}else{browseTag(value)}setImportError("");setImportValue("")};
   const title=tab==="explore"?"Explore":tab==="likes"?"Likes":tab==="saved"?"Saved posts":tab==="notes"?"Posts":"Dashboard";
   return <div className={"app classic immersive"+(night?" night":"")}>
@@ -51,7 +58,16 @@ function App(){
         <button className={tab==="likes"?"active":""} onClick={()=>view("likes")}><Heart size={14}/> Likes</button>
         <button className={tab==="saved"?"active":""} onClick={()=>view("saved")}><Bookmark size={14}/> Saved</button>
       </nav>
-      <form className="classic-global-search" onSubmit={goSearch} role="search"><Search size={15}/><input aria-label="Search Tumblr tags" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search Tumblr" /></form>
+      <div className="tm-search-wrap" ref={searchRef}>
+      <form className="classic-global-search" onSubmit={goSearch} role="search"><Search size={15}/><input aria-label="Search Tumblr tags" value={search} onFocus={()=>setSearchOpen(true)} onKeyDown={e=>{if(e.key==="Escape")setSearchOpen(false)}} onChange={e=>{setSearch(e.target.value);setSearchOpen(true)}} placeholder="Search Tumblr" autoComplete="off" /></form>
+      {searchOpen&&<div className="tm-search-popup">
+        <div className="tm-search-title">Tags</div>
+        {suggestions.map((name,i)=><button type="button" key={name} className="tm-search-suggestion" onClick={()=>{browseTag(name);setSearchOpen(false);setSearch("")}}><span className={"tm-search-icon n"+i}>#</span><span><strong>{name}</strong><small>Browse posts</small></span><ChevronRight size={13}/></button>)}
+        {matchingBlogs.length>0&&<><div className="tm-search-title">Blogs</div>{matchingBlogs.map((name,i)=><button type="button" key={name} className="tm-search-suggestion" onClick={()=>{browseBlog(name);setSearchOpen(false);setSearch("")}}><span className={"tm-search-icon b"+i}>{name[0].toUpperCase()}</span><span><strong>{name}</strong><small>Visit blog</small></span><ChevronRight size={13}/></button>)}</>}
+        {suggestions.length===0&&matchingBlogs.length===0&&<div className="tm-search-noresults">Press Enter to search #{search.trim()}</div>}
+        <button type="button" className="tm-search-all" onClick={goSearch}>Explore more tags <ArrowRight size={13}/></button>
+      </div>}
+    </div>
       <div className="classic-top-utils">
         <button className="tm-secret-trigger" onClick={()=>{setToolTab("time");setDrawer(true)}} title="Time Machine" aria-label="Open Time Machine" aria-haspopup="dialog"><Clock3 size={17}/></button>
         <button className="classic-menu" onClick={()=>setMobile(!mobile)} title="Open menu" aria-label="Open navigation"><Menu size={20}/></button>
@@ -64,7 +80,7 @@ function App(){
         </div></div>}
         {tab==="notes"?<section className="classic-notes"><div className="classic-page-heading"><h1>Posts</h1><p>Your private drafts</p></div><button onClick={()=>setShowEditor(true)} className="classic-new-note"><Plus size={16}/> New post</button>{notes.length===0?<p className="classic-no-notes">No drafts yet.</p>:notes.map(p=><article key={p.id} className="classic-note"><small>{p.date}</small><h2>{p.title||"Untitled"}</h2><p>{p.text}</p><span>{p.tags?.map(t=>"#"+t).join(" ")}</span></article>)}</section>:
          <><div className="classic-bar"><h1>{title}{blog&&<span> / {blog}</span>}{tag&&<span> / #{tag}</span>}{filterType!=="all"&&<span> / {filterType} posts</span>}</h1>{(blog||tag||filterType!=="all")&&<button onClick={()=>view("dashboard")}>Clear <X size={12}/></button>}</div>
-         <LiveArchive immersive date={date} tab={tab} initialBlog={blog} initialTag={tag} onBlog={browseBlog} onTag={browseTag} followed={savedBlogs} initialType={filterType}/></>}
+         <LiveArchive immersive date={date} tab={tab} initialBlog={blog} initialTag={tag} onBlog={browseBlog} onTag={browseTag} followed={savedBlogs} onToggleFollow={toggleFollow} initialType={filterType}/></>}
       </div>
       <aside className="classic-sidebar">
         <div className="classic-profile"><div className="classic-profile-top"><div className="classic-profile-avatar">t</div><div><strong>timecapsule</strong><small>your dashboard</small></div></div><nav>
