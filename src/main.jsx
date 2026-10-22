@@ -1,10 +1,11 @@
 import React,{useEffect,useState,useRef} from "react";
 import {createRoot} from "react-dom/client";
-import {Home,Compass,Heart,Bookmark,CalendarDays,ChevronRight,Menu,Sun,Moon,Info,Camera,Quote,Type,Link2,MessageSquare,Video,Headphones,Plus,ExternalLink,X,ArrowLeft,ArrowRight,Search,Clock3,SlidersHorizontal,BookOpen,Archive,Check} from "lucide-react";
+import {Home,Compass,Heart,Bookmark,CalendarDays,Users,ChevronRight,Menu,Sun,Moon,Info,Camera,Quote,Type,Link2,MessageSquare,Video,Headphones,Plus,ExternalLink,X,ArrowLeft,ArrowRight,Search,Clock3,SlidersHorizontal,BookOpen,Archive,Check} from "lucide-react";
 import CultureTimeline from "./CultureTimeline.jsx";
 import LiveArchive from "./LiveArchive.jsx";
 import "./style.css";
 import "./search.css";
+import "./classic2012.css";
 
 const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key))??def}catch{return def}};
 const userDate=()=>read("tm-date","2012-12-31");
@@ -46,8 +47,8 @@ function App(){
   const saveNote=()=>{if(!draft.text.trim())return;const p={id:Date.now(),blog:"my-time-capsule",date,type:"text",title:draft.title,text:draft.text,tags:draft.tags.split(",").map(t=>t.trim().replace(/^#/,"")).filter(Boolean),notes:0};setNotes([p,...notes]);setDraft({title:"",text:"",tags:""});setShowEditor(false);setTab("notes")};
   const goSearch=e=>{e.preventDefault();const value=search.trim().replace(/^#/,"");if(value){browseTag(value);setSearch("");setSearchOpen(false)}};
   const candidateTags=["creepypasta","slenderman","invader zim","nyancat","scene","emo","homestuck","photography","minecraft","gir"];
-  const suggestions=candidateTags.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,5);
-  const matchingBlogs=savedBlogs.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,3);
+  const suggestions=candidateTags.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,4);
+  const matchingBlogs=savedBlogs.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,2);
   const submitImport=e=>{e.preventDefault();const value=importValue.trim().replace(/^#/,"");if(!value){setImportError("Enter a blog or tag.");return}if(importMode==="blog"){const name=validBlog(value);if(!name){setImportError("Enter a valid Tumblr blog name.");return}setSavedBlogs(old=>[name,...old.filter(n=>n!==name)].slice(0,30));browseBlog(name)}else{browseTag(value)}setImportError("");setImportValue("")};
   const title=tab==="explore"?"Explore":tab==="likes"?"Likes":tab==="saved"?"Saved posts":tab==="notes"?"Posts":"Dashboard";
   return <div className={"app classic immersive"+(night?" night":"")}>
@@ -84,14 +85,16 @@ function App(){
          <LiveArchive immersive date={date} tab={tab} initialBlog={blog} initialTag={tag} onBlog={browseBlog} onTag={browseTag} followed={savedBlogs} onToggleFollow={toggleFollow} initialType={filterType}/></>}
       </div>
       <aside className="classic-sidebar">
-        <div className="classic-profile"><div className="classic-profile-top"><div className="classic-profile-avatar">t</div><div><strong>timecapsule</strong><small>your dashboard</small></div></div><nav>
+        <div className="classic-profile"><div className="classic-profile-top"><div className="classic-profile-avatar">t</div><div><strong>timecapsule</strong><small>your dashboard</small></div></div>
+          <div className="classic-community"><div className="classic-community-count"><Users size={13}/> Following <strong>{savedBlogs.length}</strong> {savedBlogs.length===1?"blog":"blogs"}</div><button onClick={()=>{setToolTab("import");setDrawer(true)}}><Plus size={14}/> Find blogs <ChevronRight size={13}/></button></div>
+          <nav>
           <button onClick={()=>view("dashboard")}><Home size={15}/> Dashboard <ChevronRight size={12}/></button>
           <button onClick={()=>view("likes")}><Heart size={15}/> Likes <ChevronRight size={12}/></button>
           <button onClick={()=>view("saved")}><Bookmark size={15}/> Saved posts <ChevronRight size={12}/></button>
           <button onClick={()=>view("notes")}><Type size={15}/> Posts <ChevronRight size={12}/></button>
         </nav></div>
-        <section className="classic-sidebox"><h2><Compass size={14}/> TAGS</h2><div className="classic-tags">{["creepypasta","slenderman","invader zim","nyancat","emo","scene","homestuck","photography"].map(t=><button key={t} onClick={()=>browseTag(t)}># {t}</button>)}</div></section>
-        <section className="classic-sidebox"><h2><Bookmark size={14}/> BLOGS</h2>{savedBlogs.slice(0,7).map(name=><div className="classic-blogrow" key={name}><button onClick={()=>browseBlog(name)}><span className="classic-mini-avatar">{name[0].toUpperCase()}</span>{name}</button><button onClick={()=>setSavedBlogs(savedBlogs.filter(x=>x!==name))} title={"Remove "+name}><X size={12}/></button></div>)}<div className="classic-addblog"><input aria-label="Add Tumblr username" id="newblog" placeholder="Follow a blog" maxLength={64} onKeyDown={e=>{if(e.key==="Enter"){const val=validBlog(e.currentTarget.value);if(val){setSavedBlogs([val,...savedBlogs.filter(x=>x!==val)]);e.currentTarget.value=""}}}}/><small>Type a username and press Enter</small></div></section>
+        <section className="classic-sidebox classic-tag-section"><h2><Compass size={14}/> TAGS</h2><div className="classic-tags">{["creepypasta","slenderman","invader zim","nyancat","emo","scene","homestuck","photography"].map(t=><button key={t} onClick={()=>browseTag(t)}># {t}</button>)}</div></section>
+        <section className="classic-sidebox classic-blog-section"><h2><Bookmark size={14}/> BLOGS</h2>{savedBlogs.slice(0,7).map(name=><div className="classic-blogrow" key={name}><button onClick={()=>browseBlog(name)}><span className="classic-mini-avatar">{name[0].toUpperCase()}</span>{name}</button><button onClick={()=>setSavedBlogs(savedBlogs.filter(x=>x!==name))} title={"Remove "+name}><X size={12}/></button></div>)}<div className="classic-addblog"><input aria-label="Add Tumblr username" id="newblog" placeholder="Follow a blog" maxLength={64} onKeyDown={e=>{if(e.key==="Enter"){const val=validBlog(e.currentTarget.value);if(val){setSavedBlogs([val,...savedBlogs.filter(x=>x!==val)]);e.currentTarget.value=""}}}}/><small>Type a username and press Enter</small></div></section>
       </aside>
     </div>
     {drawer&&<div className="tm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setDrawer(false)}}>
