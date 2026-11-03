@@ -55,6 +55,7 @@ try{
  const uniqueAnchors=new Set(sampledBefore.filter(Boolean));
  assert.ok(uniqueAnchors.size>=3,"Discover must sample different historical months");
  console.log("PERSONALIZED_EXPLORE_OK",uniqueAnchors.size);
+ await phone.screenshot({path:"/tmp/tumblr-iphone-explore.jpg",type:"jpeg",quality:75});
  await phone.locator(".tm-ios-featured-tags button").filter({hasText:"#creepypasta"}).click();
  await phone.locator(".tm-discover-mode button").filter({hasText:"Top of this era"}).waitFor({state:"visible"});
  await phone.locator(".tt-post").first().waitFor({state:"visible",timeout:25000});
@@ -62,6 +63,7 @@ try{
  const firstTop=await phone.locator(".tt-post .tt-post-title").first().textContent();
  assert.equal(firstTop,"Viral January 2012 image","popular older post should rank above newer low-engagement post");
  console.log("TOP_OF_ERA_OK",firstTop);
+ await phone.screenshot({path:"/tmp/tumblr-iphone-top.jpg",type:"jpeg",quality:75});
  await phone.locator(".tm-discover-mode button").filter({hasText:"Most recent"}).click();
  await phone.locator(".tt-post .tt-post-title").first().waitFor({state:"visible"});
  await phone.locator(".tm-discover-context").filter({hasText:"searches sampled"}).waitFor({state:"visible"});
@@ -107,7 +109,7 @@ try{
  assert.ok(mobileScroll.scrollWidth<=mobileScroll.viewWidth+3);
  if(errors.length)throw new Error(errors.join("\n"));
  console.log("ZERO_JS_ERRORS");
- for(const [name,path] of [["DASHBOARD","/tmp/tumblr-iphone-dashboard.jpg"],["COMPOSE","/tmp/tumblr-iphone-compose.jpg"]]){
+ for(const [name,path] of [["DASHBOARD","/tmp/tumblr-iphone-dashboard.jpg"],["EXPLORE","/tmp/tumblr-iphone-explore.jpg"],["TOP","/tmp/tumblr-iphone-top.jpg"],["COMPOSE","/tmp/tumblr-iphone-compose.jpg"]]){
   console.log("IMAGE_"+name+"_START");
   console.log(readFileSync(path).toString("base64"));
   console.log("IMAGE_"+name+"_END");
