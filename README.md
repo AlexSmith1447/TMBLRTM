@@ -1,3 +1,25 @@
+## 2012 Tumblr iPhone mode (same Cloudflare site)
+
+SceneIndex is a separate project. This website has an **iPhone-specific Tumblr 3.0 interface** based on the real June–November 2012 iOS app, not a resized desktop dashboard.
+
+- The site automatically uses its period-style mobile UI for iPhones and other phone-sized screens, while wide desktop browsers keep the classic 2012 website.
+- The iPhone interface has Dashboard, tag search, Account and the black, colorful post-type chooser; it shares the **same real Tumblr archive data**, historical date cutoff, followed blogs, locally liked posts and bookmarks.
+- Photos open the existing full-resolution lightbox. Text in the Post chooser saves a **private local draft**; other types browse that type of archived post. There is **no Tumblr login or publication**.
+- Tap the small clock in the upper-right corner for the Time Machine and Culture Clock.
+- The iPhone has a custom `tumblr.` 180px Home Screen icon and `/manifest.webmanifest` with standalone launch settings.
+- Supported iPhone and iPad Safari versions let you launch the site from the Home Screen **without a browser address bar**. Browser-based PWAs cannot replace the operating system's real status indicators or install Apple's original discontinued app.
+
+### Install on iPhone
+
+1. Open `https://tmblrtm.pages.dev/` in Safari.
+2. Open Safari's **Share** menu (on recent Safari versions, first open the Page Menu).
+3. Tap **Add to Home Screen**.
+4. Enable **Open as Web App** if this option appears, then tap **Add**.
+
+The icon will launch this same website in its standalone app-style window. If you already installed an older icon, remove that Home Screen shortcut and add it again to pick up the new name/icon.
+
+**Offline note:** The shell is intended for online Tumblr archive browsing. It doesn't claim to download and preserve original media for offline access, and it cannot show deleted posts that Tumblr no longer exposes.
+
 # Tumblr Time Machine
 
 A nostalgic, independent historical Tumblr browser, styled after the 2011–2013 dashboard.
