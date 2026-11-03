@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useState,useRef,useCallback} from "react";
-import {AlertCircle,ArrowLeft,ArrowRight,ArrowUpRight,Bookmark,CalendarDays,Camera,Check,ChevronLeft,ChevronRight,ExternalLink,Heart,Image as ImageIcon,Loader2,Plus,Repeat2,Search,SlidersHorizontal,Users,X,FolderOpen,LayoutGrid,Music,Film,Quote,Link2} from "lucide-react";
+import {AlertCircle,ArrowLeft,ArrowRight,ArrowUpRight,Bookmark,CalendarDays,Camera,Check,ChevronLeft,ChevronRight,ExternalLink,Heart,Image as ImageIcon,Loader2,Plus,Repeat2,RefreshCw,Search,SlidersHorizontal,Users,X,FolderOpen,LayoutGrid,Music,Film,Quote,Link2} from "lucide-react";
 import PhotoViewer from "./PhotoViewer.jsx";
+import {tasteProfile,suggestedTags,eraAnchors,oldestEraTimestamp,rankDiscovered} from "./discovery.js";
 import "./live.css";
 import "./blog.css";
 
@@ -68,6 +69,120 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
   {viewer!==null&&<PhotoViewer images={post.images} initialIndex={viewer} postUrl={post.url} onClose={()=>setViewer(null)}/>}
  </article>;
 }
+
+/**
+ * Historical discovery samples different months rather than just the cutoff day.
+ * IMPORTANT: /tagged only offers timestamp paging; there is no official "Top"
+ * response. These are the top-ranked posts AMONG THE POSTS WE CAN SAMPLE.
+ */
+function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog,onLike,onSave,mobileMode=false}){
+ const [sort,setSort]=useState("top");
+ const [rotation,setRotation]=useState(0);
+ const [page,setPage]=useState(0);
+ const [posts,setPosts]=useState([]);
+ const [loading,setLoading]=useState(false);
+ const [error,setError]=useState("");
+ const [partial,setPartial]=useState("");
+ const [hasRecent,setHasRecent]=useState(true);
+ const [sampled,setSampled]=useState(0);
+ const [selected,setSelected]=useState([]);
+ const recentBefore=useRef(null);
+ const request=useRef(null);
+ const interests=useMemo(()=>tasteProfile(liked,saved,followed),[liked,saved,followed.join("|")]);
+ const isExplore=!tag;
+ const topicKey=tag||"for-you";
+ const topicPlan=useMemo(()=>tag?[tag]:suggestedTags(interests,rotation,4),[topicKey,rotation]);
+ const earliest=oldestEraTimestamp(date,12);
+ const ranked=useMemo(()=>rankDiscovered(posts,interests,{sort,tag,rotation}).filter(p=>p.date&&p.date<=date&&p.timestamp>=earliest),[posts,interests,sort,tag,rotation,date,earliest]);
+ const pagesTotal=isExplore?6:3;
+ const canMore=sort==="recent"?hasRecent:page<pagesTotal-1;
+ const shuffle=()=>{setRotation(n=>n+1);setPage(0);setPosts([]);setSelected([])};
+ const switchSort=next=>{if(next===sort)return;setSort(next);setPage(0);setPosts([]);recentBefore.current=null;setHasRecent(true);setSampled(0)};
+ const fetchBatch=async (jobs,signal)=>{
+  const results=[];
+  for(let i=0;i<jobs.length;i+=3){
+   if(signal.aborted)break;
+   const group=await Promise.allSettled(jobs.slice(i,i+3).map(x=>fetchPage({tag:x.tag,before:x.before,limit:20,signal})));
+   results.push(...group);
+  }
+  return results;
+ };
+ useEffect(()=>{
+  if(configured!==true)return;
+  const controller=new AbortController();
+  request.current?.abort();request.current=controller;
+  if(page===0){setPosts([]);setSelected([]);setSampled(0);recentBefore.current=null;setHasRecent(true)}
+  setError("");setPartial("");setLoading(true);
+  const run=async()=>{
+   let jobs=[];
+   if(sort==="recent"){
+    // Real recent order from the selected cutoff, no fake popularity order.
+    const beforeValue=page===0?cutoff(date):recentBefore.current;
+    if(beforeValue==null){setHasRecent(false);return}
+    jobs=topicPlan.map(t=>({tag:t,before:beforeValue}));
+   }else if(tag){
+    const all=[0,3,6,9,1,2,4,5,7,8,10,11];
+    jobs=eraAnchors(date,all.slice(page*4,page*4+4)).map(before=>({tag,before}));
+   }else{
+    const sets=[[0,5],[2,8],[1,4],[3,6],[7,10],[9,11]];
+    jobs=topicPlan.flatMap(t=>eraAnchors(date,sets[page]||[]).map(before=>({tag:t,before})));
+   }
+   if(!jobs.length)return;
+   const results=await fetchBatch(jobs,controller.signal);
+   if(controller.signal.aborted)return;
+   const good=results.filter(x=>x.status==="fulfilled").map(x=>x.value);
+   const bad=results.filter(x=>x.status==="rejected"&&x.reason?.name!=="AbortError");
+   const recentRows=good.flatMap(x=>x.posts);
+   if(sort==="recent"){
+    // /tagged results can be irregular: don't use offset, and avoid loops.
+    const next=good.map(x=>x.nextBefore).filter(x=>Number.isFinite(x));
+    const nextBefore=next.length?Math.min(...next):null;
+    const current=jobs[0].before;
+    recentBefore.current=nextBefore!==null&&nextBefore<current?nextBefore:null;
+    setHasRecent(!!recentBefore.current&&good.some(x=>x.hasMore));
+   }
+   const usable=recentRows.filter(p=>p.timestamp<=cutoff(date)&&p.timestamp>=earliest);
+   setPosts(old=>merge(page===0?[]:old,usable));
+   setSampled(old=>(page===0?0:old)+jobs.length);
+   if(page===0)setSelected(topicPlan);
+   if(bad.length)setPartial(good.length?bad.length+" source request(s) unavailable; showing what we found.":"");
+   if(!good.length&&bad.length)setError(bad[0].reason?.message||"Could not reach Tumblr.");
+  };
+  run().catch(e=>{if(!controller.signal.aborted)setError(e.message||"Could not search historical posts.")}).finally(()=>{if(!controller.signal.aborted)setLoading(false)});
+  return()=>controller.abort();
+ },[configured,tag,date,sort,rotation,page]);
+ const handleMore=()=>{if(loading||!canMore)return;setPage(p=>p+1)};
+ return <div className={"tm-discover"+(mobileMode?" tm-discover-mobile":"")}>
+  <div className="tm-discover-header">
+   <div><span className="tm-discover-kicker">{tag?"TAG ARCHIVE":"EXPLORE TUMBLR"}</span>
+    <h2>{tag?"#"+tag:"For You"}</h2>
+    <p>{tag?"Discover popular surviving posts from across the era.":"A personal mix of preserved posts, based on the tags and blogs you like."}</p>
+   </div>
+   {isExplore&&<button type="button" className="tm-discover-refresh" onClick={shuffle} title="Try other topics"><RefreshCw size={15}/> Mix it up</button>}
+  </div>
+  {isExplore&&<div className="tm-discover-topics">
+   {(selected.length?selected:topicPlan).map(t=><button key={t} onClick={()=>onTag(t)}>#{t}</button>)}
+  </div>}
+  {tag&&<div className="tm-discover-mode" role="group" aria-label="Tag post sorting">
+   <button className={sort==="top"?"active":""} onClick={()=>switchSort("top")} aria-pressed={sort==="top"}><Heart size={14}/> Top of this era</button>
+   <button className={sort==="recent"?"active":""} onClick={()=>switchSort("recent")} aria-pressed={sort==="recent"}><CalendarDays size={14}/> Most recent</button>
+  </div>}
+  <div className="tm-discover-context">
+   {sort==="top"?"Ranked from sampled public posts":"Chronological public posts"} · {date.slice(0,4)} and the preceding months
+   {sampled>0&&<span> · {sampled} searches sampled</span>}
+  </div>
+  {configured===null&&<div className="tt-loading"><Loader2 size={18} className="rotating"/><p>Connecting to Tumblr…</p></div>}
+  {configured===false&&<div className="tt-error"><AlertCircle size={16}/> Tumblr API is not configured.</div>}
+  {error&&<div className="tt-error"><AlertCircle size={16}/>{error}<button onClick={shuffle}>Retry</button></div>}
+  {partial&&<p className="tm-discover-partial">{partial}</p>}
+  {ranked.length>0&&<div className="tt-post-list">{ranked.map(post=><PostCard key={post.id} post={post} liked={!!liked[post.id]} saved={!!saved[post.id]} onLike={onLike} onSave={onSave} onTag={onTag} onBlog={onBlog}/>)}</div>}
+  {loading&&<div className="tt-loading"><Loader2 className="rotating" size={18}/><p>{page===0?"Finding posts from different months…":"Exploring more of the era…"}</p></div>}
+  {!loading&&ranked.length===0&&!error&&configured===true&&<div className="tt-empty"><Search size={26}/><strong>No accessible posts in this sample</strong><p>Tumblr does not always expose older tag results consistently. Try a different tag or explore more months.</p></div>}
+  {configured===true&&!loading&&canMore&&<button className="tt-load-more tm-discover-more" onClick={handleMore}><Plus size={15}/> {sort==="recent"?"Older posts":"Find more from this era"}</button>}
+  <p className="tm-discover-footnote">Top is an independent ranking based on current note counts and your interests, not Tumblr's original historical trending chart. Deleted or private posts may be missing.</p>
+ </div>;
+}
+
 const themes=["classic","midnight","paper","pastel"];
 function themeFor(name){let n=0;for(const c of name||"")n=(n*31+c.charCodeAt(0))>>>0;return themes[n%themes.length]}
 function BlogHeader({name,info,followed,onToggle,month,onMonth,cutoffDate,onThemeChange}){
@@ -110,8 +225,10 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  const requestGuard=useRef(null);
  const tabPinned=tab==="likes"||tab==="saved";
  const isBlog=!!initialBlog;
- const isTag=!!initialTag||tab==="explore";
- const isDashboard=!tabPinned&&!isBlog&&!isTag;
+ const isTag=!!initialTag;
+ const isExplore=tab==="explore"&&!isBlog&&!isTag;
+ const specialDiscovery=!tabPinned&&!isBlog&&(isTag||isExplore);
+ const isDashboard=!tabPinned&&!isBlog&&!isTag&&!isExplore;
  const names=useMemo(()=>[...new Set(followed.filter(validBlog))].slice(0,6),[followed.join("|")]);
  const namesKey=names.join("|");
  const singleName=isBlog?initialBlog:null;
@@ -136,7 +253,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   return {name:name||"__tag__",posts:good,next:{offset:data.nextOffset||offset+data.posts.length,before:data.nextBefore,hasMore:!!data.hasMore&&!reachedBefore&&data.posts.length>0}};
  };
  useEffect(()=>{
-  if(configured!==true||tabPinned)return;
+  if(configured!==true||tabPinned||specialDiscovery)return;
   const controller=new AbortController();requestGuard.current?.abort();requestGuard.current=controller;
   setPosts([]);setCursors({});setError("");setPartial("");setLoading(true);
   const run=async()=>{
@@ -181,6 +298,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   if(failed.length)setError(good.length?"Some posts could not be loaded.":"Could not load more posts.");
   setMoreLoading(false);
  };
+ if(specialDiscovery)return <section className={"tt-live tt-immersive"+(mobileMode?" tm-native-mobile":"")}><DiscoveryFeed tag={initialTag||""} date={date} configured={configured} liked={liked} saved={saved} followed={followed} onTag={onTag} onBlog={onBlog} onLike={like} onSave={save} mobileMode={mobileMode}/></section>;
  return <section className={"tt-live"+(immersive?" tt-immersive":"")+(mobileMode?" tm-native-mobile":"")+(isBlog?" tm-blog-feed theme-"+activeTheme:"")}>
   {isBlog&&<BlogHeader name={singleName} info={blogInfo} followed={followed.includes(singleName)} onToggle={onToggleFollow||(()=>{})} month={month} onMonth={setMonth} cutoffDate={date} onThemeChange={setActiveTheme}/>}
   {isDashboard&&names.length===0&&<FeedEmpty message="Follow some blogs using the sidebar, then their posts will appear here." icon={Users}/>}
