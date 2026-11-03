@@ -13,8 +13,7 @@ const TYPES=[
  {id:"quote",name:"Quote",icon:Quote},
  {id:"link",name:"Link",icon:Link2},
  {id:"chat",name:"Chat",icon:MessageCircle},
- {id:"video",name:"Video",icon:Film},
- {id:"audio",name:"Audio",icon:Headphones}
+ {id:"video",name:"Video",icon:Film}
 ];
 const tags=["creepypasta","slenderman","scene","emo","invader zim","nyancat","homestuck","minecraft","photography","gothic","nintendocore"];
 function MobileTumblr({
