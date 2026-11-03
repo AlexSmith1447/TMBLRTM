@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Tumblr Time Machine · 2012",
+  "short_name": "tumblr.",
+  "description": "Step into the Tumblr dashboard of 2012. Browse real historical posts and photos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#294660",
+  "theme_color": "#294660",
+  "icons": [
+    {
+      "src": "/icons/tumblr-2012.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/tumblr-touch-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
