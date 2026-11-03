@@ -94,7 +94,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
  const topicPlan=useMemo(()=>tag?[tag]:suggestedTags(interests,rotation,4),[topicKey,rotation]);
  const earliest=oldestEraTimestamp(date,12);
  const ranked=useMemo(()=>rankDiscovered(posts,interests,{sort,tag,rotation}).filter(p=>p.date&&p.date<=date&&p.timestamp>=earliest),[posts,interests,sort,tag,rotation,date,earliest]);
- const pagesTotal=isExplore?6:3;
+ const pagesTotal=isExplore?4:3;
  const canMore=sort==="recent"?hasRecent:page<pagesTotal-1;
  const shuffle=()=>{setRotation(n=>n+1);setPage(0);setPosts([]);setSelected([])};
  const switchSort=next=>{if(next===sort)return;setSort(next);setPage(0);setPosts([]);recentBefore.current=null;setHasRecent(true);setSampled(0)};
@@ -124,7 +124,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
     const all=[0,3,6,9,1,2,4,5,7,8,10,11];
     jobs=eraAnchors(date,all.slice(page*4,page*4+4)).map(before=>({tag,before}));
    }else{
-    const sets=[[0,5],[2,8],[1,4],[3,6],[7,10],[9,11]];
+    const sets=[[0,4,8],[2,6,10],[1,5,9],[3,7,11]];
     jobs=topicPlan.flatMap(t=>eraAnchors(date,sets[page]||[]).map(before=>({tag:t,before})));
    }
    if(!jobs.length)return;
