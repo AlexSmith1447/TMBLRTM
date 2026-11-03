@@ -1,0 +1,346 @@
+/*
+ * Tumblr 3.0 for iPhone (June–November 2012) recreation.
+ * Reference: real 2012 iTunes screenshots and app release photography.
+ * This layer applies only to the distinct phone UI, not the desktop.
+ */
+.tm-iphone{
+  --ios-paper:#fff;
+  --ios-blue:#294660;
+  --ios-blue-deep:#22394d;
+  position:fixed;
+  inset:0;
+  z-index:250;
+  min-width:0;
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  background:#294660;
+  color:#344b5f;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  font-size:13px;
+  text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+.tm-iphone *, .tm-iphone *:before, .tm-iphone *:after {box-sizing:border-box}
+.tm-ios-toolbar{
+  flex:0 0 auto;
+  padding-top:env(safe-area-inset-top,0px);
+  background:linear-gradient(#526d84 0%,#3a5873 47%,#2e4c67 100%);
+  border-bottom:1px solid #192c3c;
+  box-shadow:inset 0 1px #91a6b258,0 1px 1px #162d42c9;
+  position:relative;
+  z-index:8;
+}
+.tm-ios-nav{height:44px;display:grid;grid-template-columns:88px minmax(0,1fr) 88px;align-items:center;padding:0 8px}
+.tm-ios-nav-title{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:bold 17px/1.1 "Helvetica Neue",Arial,sans-serif;color:#fff;text-shadow:0 -1px 0 #132e44;letter-spacing:-.3px;text-align:center}
+.tm-ios-nav button{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;color:#f8fcff}
+.tm-ios-nav-leading{text-align:left;min-width:0}
+.tm-ios-nav-trailing{text-align:right}
+.tm-ios-nav-trailing button{width:39px;height:34px}
+.tm-ios-logo-mini{height:33px;min-width:33px;font:bold 31px/1 Georgia,serif!important;text-shadow:0 1px #1b3344}
+.tm-ios-back{
+  max-width:88px;min-height:30px;
+  padding:0 6px 0 1px!important;
+  border-radius:5px!important;
+  background:linear-gradient(#5c7891,#2d4c66)!important;
+  border:1px solid #223b51!important;
+  box-shadow:inset 0 1px #a2b7c13b;
+  font:700 11px Arial!important;
+  gap:0;
+  text-shadow:0 -1px #1e354b;
+}
+.tm-ios-back span{overflow:hidden;text-overflow:ellipsis}
+.tm-ios-history{opacity:.75}
+.tm-ios-history:active{opacity:1;background:#365672!important;border-radius:4px}
+.tm-iphone-scroll{
+  flex:1 1 auto;min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  background:linear-gradient(#34526b 0,#2d4861 200px,#2c455e 100%);
+  padding:0 0 22px;
+  scrollbar-width:none;
+}
+.tm-iphone-scroll::-webkit-scrollbar{display:none}
+.tm-ios-tabbar{
+  flex:0 0 auto;
+  height:calc(49px + env(safe-area-inset-bottom,0px));
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  background:linear-gradient(#41464b,#24262b 40%,#121417 95%);
+  border-top:1px solid #0f1114;
+  box-shadow:inset 0 1px #777b80c9,0 -1px 4px #1b2b3e50;
+  position:relative;
+  z-index:9;
+}
+.tm-ios-tabbar>button{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:0;
+  padding:2px 0 0;
+  margin:0;
+  min-width:0;
+  height:49px;
+  color:#a8afb3;
+  border:0;
+  border-right:1px solid #292d31;
+  background:transparent;
+  text-shadow:0 1px 1px #000;
+}
+.tm-ios-tabbar>button.selected{
+ color:#fff;
+ background:linear-gradient(#525c66,#222c35 55%,#1d272f);
+ box-shadow:inset 0 2px #8ea5b8;
+}
+.tm-ios-tabbar>button.compose-button svg,.tm-ios-tabbar>button.compose-active svg{
+ background:linear-gradient(#77b1d9,#3578ae);
+ border:1px solid #8cb8d3;
+ color:#fff;
+ width:35px;height:31px;
+ padding:4px 6px;
+ border-radius:4px;
+ box-shadow:0 1px #0005,inset 0 1px #c2dcef;
+}
+.tm-ios-tabbar>button.compose-active{color:#fff}
+.tm-ios-tag-button{font:bold 26px/23px Georgia,serif;height:26px}
+.tm-ios-tabbar>button small{font:9px/1.25 "Helvetica Neue",Arial,sans-serif;color:inherit;letter-spacing:0}
+.tm-iphone button,.tm-iphone a,.tm-iphone input{touch-action:manipulation}
+.tm-iphone button:focus-visible,.tm-iphone a:focus-visible{outline:2px solid #94c8eb;outline-offset:2px}
+/* Shared real Tumblr feed, restyled to the 2012 native app. */
+.tm-iphone .tt-live,.tm-iphone .tt-immersive{width:100%;padding:8px 6px 8px;color:#d4e4ef}
+.tm-iphone .tt-post-list{display:flex;flex-direction:column;gap:9px}
+.tm-iphone .tt-post{
+ display:block;
+ position:relative;
+ margin:0 0 1px;
+ padding:0;
+ gap:0;
+ min-width:0;
+}
+.tm-iphone .tm-avatar-button{
+ position:absolute;
+ z-index:3;
+ top:8px;left:9px;
+ display:block;
+ height:37px;width:37px;
+ padding:0;
+ background:transparent;
+ border:0;
+}
+.tm-iphone .tm-blog-avatar,
+.tm-iphone .tm-avatar-button .tm-blog-avatar{
+ width:36px;height:36px;
+ border:1px solid #b6c3c9;
+ box-shadow:0 1px 2px #172b3580;
+ border-radius:3px;
+ background:#63859d;
+ font:bold 18px Georgia,serif;
+}
+.tm-iphone .tm-blog-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.tm-iphone .tt-post-paper{
+ overflow:hidden;
+ min-width:0;width:100%;
+ background:#fff;
+ border:1px solid #1b3447;
+ border-radius:4px;
+ color:#3e4c55;
+ box-shadow:0 1px 0 #50697b,0 2px 4px #1a2c3e7a;
+}
+.tm-iphone .tt-post-paper:before,.tm-iphone .tt-post-paper:after{display:none}
+.tm-iphone .tt-post-head{
+ background:linear-gradient(#fff,#f7f8f9);
+ border-bottom:1px solid #edf0f2;
+ display:flex;align-items:center;
+ gap:8px;
+ padding:9px 10px 9px 53px;
+ min-height:55px;
+}
+.tm-iphone .tt-post-blog{font:700 13px/1.2 "Helvetica Neue",Arial,sans-serif;color:#315a7a}
+.tm-iphone .tt-post-head small{font:10px/1.4 "Helvetica Neue",Arial,sans-serif;color:#a2a8af;margin-top:3px}
+.tm-iphone .tm-reblog-source{font-size:10px;line-height:1.3}
+.tm-iphone .tt-post-open{color:#8fabbc}
+.tm-iphone .tt-post-title{margin:11px 12px 6px;font:700 20px/1.3 Georgia,serif;color:#35424c}
+.tm-iphone .tt-post-text{margin:10px 12px 12px;font:13.5px/1.54 "Helvetica Neue",Arial,sans-serif;color:#3c4650;white-space:pre-line;overflow-wrap:anywhere}
+.tm-iphone .tt-quote{margin:12px 15px;font:21px/1.45 Georgia,serif;color:#35424c}
+.tm-iphone .tm-photoset{display:grid;gap:2px;margin:0;width:100%;border:0}
+.tm-iphone .tm-photo-cell{min-width:0}
+.tm-iphone .tm-photo-cell img{width:100%;height:auto;max-height:600px;object-fit:cover;display:block}
+.tm-iphone .tm-photo-cell:only-child img{object-fit:contain}
+.tm-iphone .tt-post-tags{padding:8px 12px 11px;gap:7px 9px}
+.tm-iphone .tt-post-tags button{color:#8fa2b0;font-size:11px;min-height:18px}
+.tm-iphone .tt-post-footer{
+ background:linear-gradient(#f9fafb 0,#e8ebed 100%);
+ border-top:1px solid #d7dcdf;
+ min-height:42px;padding:4px 9px 4px 13px;
+ font:10.5px Arial;color:#83919c;
+ display:flex;align-items:center;justify-content:space-between;
+ border-radius:0;
+}
+.tm-iphone .tt-post-footer>div{gap:6px}
+.tm-iphone .tt-post-footer button,.tm-iphone .tt-post-footer a{height:32px;width:34px;display:grid;place-items:center;border-radius:3px}
+.tm-iphone .tt-post-footer button.hearted{color:#bf6376}
+.tm-iphone .tt-post-footer button.marked{color:#457d9d}
+.tm-iphone .tm-trail{margin:5px 12px 8px}
+.tm-iphone .tm-trail-toggle{font-size:10px;min-height:30px}
+.tm-iphone .tm-media-block{margin:10px 12px 15px}
+.tm-iphone .tm-blog-feed .tm-blog-layout{margin:0 0 8px}
+.tm-iphone .tm-blog-layout .tm-theme-selection{display:none}
+.tm-iphone .tm-feed-source{display:none}
+.tm-iphone .tt-filterrow{margin:0 0 8px;padding:7px 5px;gap:7px;border:0;align-items:center;flex-wrap:wrap}
+.tm-iphone .tt-post-count{color:#e0eaf0;font-size:11px}
+.tm-iphone .tt-filtertools{gap:5px}
+.tm-iphone .tt-filtertools label{background:#426079;border-color:#6b879a;color:#d7e5ee}
+.tm-iphone .tt-filtertools input{width:92px;font-size:11px;color:#fff}
+.tm-iphone .tt-filtertools select{max-width:93px;color:#fff;font-size:11px}
+.tm-iphone .tt-filtertools select option{color:#233f56}
+.tm-iphone .tt-empty,.tm-iphone .tt-loading,.tm-iphone .tt-error{
+ margin:10px 5px;
+ padding:23px 13px;
+ background:#e9eff3;
+ color:#61788c;
+ border-radius:4px;
+ border:1px solid #aec1cd;
+ text-align:center;
+}
+.tm-iphone .tt-empty strong{color:#415c71}
+.tm-iphone .tt-error{display:flex;text-align:left;color:#745f57}
+.tm-iphone .tt-load-more{
+ margin:13px 6px 18px;
+ width:calc(100% - 12px);
+ min-height:44px;
+ color:#fff;
+ background:linear-gradient(#577c99,#355774);
+ border:1px solid #7290a5;
+ box-shadow:inset 0 1px #ffffff40,0 1px 3px #142b3f;
+ border-radius:4px;
+ font:700 12px Arial;
+}
+.tm-iphone .tt-feed-end,.tm-iphone .tm-partial{margin:12px;color:#c7d7e2}
+.tm-iphone .tm-lightbox-backdrop{z-index:1000}
+/* Tag search: dark old-school native search text and light UITableView results. */
+.tm-ios-tag-page{padding:0 0 18px}
+.tm-ios-tag-page>form{padding:10px;background:linear-gradient(#385773,#294660);border-bottom:1px solid #172f42}
+.tm-ios-search-input{
+ height:34px;border-radius:6px;background:#fff;
+ box-shadow:inset 0 1px 2px #1e334a77;
+ border:1px solid #1d3547;
+ display:flex;align-items:center;gap:7px;
+ padding:0 9px;
+ color:#8a9ba8;
+}
+.tm-ios-search-input input{flex:1;min-width:0;background:none;border:0;outline:0;color:#263f53;font:15px "Helvetica Neue",Arial}
+.tm-ios-search-input input::placeholder{color:#9eabb4}
+.tm-ios-section-header{
+ display:flex;align-items:center;min-height:29px;
+ padding:9px 11px 6px;
+ background:linear-gradient(#d9dde0,#c9d0d5);
+ color:#597084;
+ font:bold 11px Arial;
+ text-shadow:0 1px #fff;
+ border-top:1px solid #f9fafb;
+ border-bottom:1px solid #a9b5be;
+ letter-spacing:.3px;
+}
+.tm-ios-tag-list{background:#fff}
+.tm-ios-tag-list>button{
+ display:flex;align-items:center;gap:11px;width:100%;min-height:65px;
+ padding:8px 14px;
+ border:0;border-bottom:1px solid #d9dee2;
+ background:linear-gradient(#fff,#fbfbfb);
+ text-align:left;color:#343c43;
+}
+.tm-ios-tag-list>button:active,.tm-ios-account-list>button:active{background:#dceaf5}
+.tm-ios-tag-icon{
+ display:grid;place-items:center;flex:0 0 42px;height:42px;
+ background:linear-gradient(#d8e9ef,#b3d5e3);
+ border:1px solid #b0cbd7;border-radius:3px;color:#49718a;
+ font:bold 23px Georgia,serif;text-shadow:0 1px #fff8;
+}
+.tm-ios-tag-icon.n1,.tm-ios-tag-icon.n4{background:#d9d9e5;color:#6b7296;border-color:#cbcbdf}
+.tm-ios-tag-icon.n2,.tm-ios-tag-icon.n5{background:#e6d6e1;color:#976382;border-color:#d9b9cf}
+.tm-ios-tag-icon.n3,.tm-ios-tag-icon.n6{background:#e9d8ce;color:#b47d66;border-color:#d9c2b2}
+.tm-ios-tag-icon.n7,.tm-ios-tag-icon.n8{background:#d5e7df;color:#5b947f;border-color:#bbd8ca}
+.tm-ios-tag-label{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.tm-ios-tag-label strong{font:bold 14px "Helvetica Neue",Arial;color:#38434b}
+.tm-ios-tag-label small{font:11px Arial;color:#9ba3a9}
+.tm-ios-chevron{color:#9eabb5;font:28px Georgia;line-height:1}
+.tm-ios-tag-hint{font:11px/1.5 Arial;color:#a9c3d3;text-align:center;padding:15px}
+/* Account: 2012 grouped table aesthetics. */
+.tm-ios-account .tm-ios-section-header{margin-top:12px}
+.tm-ios-account .tm-ios-section-header:first-child{margin-top:0}
+.tm-ios-account-profile{display:flex;align-items:center;gap:13px;background:#fff;padding:13px 15px;border-bottom:1px solid #c7d1d7}
+.tm-ios-account-profile>span:last-child{display:flex;flex-direction:column;gap:4px}
+.tm-ios-account-profile strong{font:bold 16px Arial;color:#36495a}
+.tm-ios-account-profile small{color:#8797a3;font:11px Arial}
+.tm-ios-account-avatar{width:46px;height:46px;display:grid;place-items:center;background:linear-gradient(#7398b2,#355a77);border-radius:5px;color:#fff;border:2px solid #26455d;font:bold 39px Georgia,serif}
+.tm-ios-account-list{background:#fff}
+.tm-ios-account-list button{display:flex;align-items:center;gap:12px;width:100%;min-height:49px;padding:10px 16px;text-align:left;border:0;border-bottom:1px solid #dce0e4;background:linear-gradient(#fff,#fafafa);font:700 14px Arial;color:#415161}
+.tm-ios-account-list button svg{color:#839bad}
+.tm-ios-account-list button span:last-child{margin-left:auto;color:#9eafba;font-size:25px;font-weight:400}
+.tm-ios-account-list .tm-ios-mini-avatar{flex:0 0 28px;height:28px;display:grid;place-items:center;background:#6b91a8;color:#fff;border:1px solid #4a7087;border-radius:3px;font:bold 17px Georgia}
+.tm-ios-account-list button .tm-ios-mini-avatar+span{margin-left:0}
+.tm-ios-account-last{margin:15px 0}
+.tm-ios-info{padding:17px 14px;color:#758b9d;background:#f9fbfd;font:12px/1.5 Arial}
+.tm-ios-notes .tm-ios-draft{background:#fff;border-bottom:1px solid #c6ced5;padding:13px}
+.tm-ios-draft small{color:#8e9eab;font-size:11px}
+.tm-ios-draft h3{margin:8px 0;font:bold 19px Georgia}
+.tm-ios-draft p{white-space:pre-wrap;line-height:1.5}
+.tm-ios-draft-button{display:flex;align-items:center;justify-content:center;gap:8px;margin:13px auto;border:1px solid #7295b0;border-radius:3px;background:#eaf0f5;color:#385875;padding:11px 16px;font-size:12px}
+.tm-ios-compose{
+ min-height:100%;
+ background:radial-gradient(ellipse at 50% 0,#23262b 0,#0c0e11 72%);
+ color:#fff;
+ display:flex;flex-direction:column;justify-content:center;
+ padding:14px 14px 35px;
+}
+.tm-ios-compose-grid{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:7px 15px;
+ max-width:430px;width:100%;
+ margin:auto;
+}
+.tm-ios-compose-type{
+ min-width:0;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+ min-height:117px;padding:6px 4px;
+ background:transparent;
+ color:#fff;border:0;
+ font:12px Arial;text-shadow:0 1px 3px #000a;
+}
+.tm-ios-compose-type>span{height:63px;display:flex;align-items:center;justify-content:center}
+.tm-ios-compose-type svg{filter:drop-shadow(0 2px 1px #000b)}
+.tm-ios-compose-type.text>span b{font:bold 56px/1 Georgia,serif;color:#fff}
+.tm-ios-compose-type.photo svg{color:#ef642e}
+.tm-ios-compose-type.quote>span b{font:bold 79px/1 Georgia,serif;color:#f2a02c}
+.tm-ios-compose-type.link svg{color:#57b68d}
+.tm-ios-compose-type.chat>span b{font:bold 35px Arial;color:#65bcea;background:#215e88;border-radius:12px;padding:4px 7px}
+.tm-ios-compose-type.video svg{color:#a4afb6}
+.tm-ios-compose-type.audio svg{color:#ab8cc4}
+.tm-ios-compose-type strong{font:12px Arial;color:#d4d8dc}
+.tm-ios-compose-type:active{transform:scale(.94);opacity:.8}
+.tm-ios-compose-note{color:#77848f;font:10.5px/1.45 Arial;text-align:center;padding:10px 15px 0;max-width:330px;margin:0 auto 8px}
+.tm-iphone-composing .tm-iphone-scroll{background:#101215}
+/* Dashboard lightbox and drawer remain above the native shell. */
+.app:has(.tm-iphone) .tm-overlay{z-index:1200}
+.app:has(.tm-iphone) .classic-overlay{z-index:1200}
+.app:has(.tm-iphone) .tm-drawer{max-width:100vw;width:100%;height:100dvh}
+.app:has(.tm-iphone) .tm-drawer-footer{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.app:has(.tm-iphone) .classic-dialog{max-width:calc(100% - 20px);width:100%}
+@media(max-height:620px){
+ .tm-ios-compose-grid{gap:0;max-width:440px}
+ .tm-ios-compose-type{min-height:73px;gap:3px}
+ .tm-ios-compose-type>span{height:44px}
+ .tm-ios-compose-type svg{height:34px;width:34px}
+ .tm-ios-compose-type.text>span b{font-size:44px}
+ .tm-ios-compose-type.quote>span b{font-size:55px}
+ .tm-ios-compose-type.chat>span b{font-size:28px}
+ .tm-ios-compose-note{padding:0}
+}
+@media(prefers-reduced-motion:reduce){.tm-iphone *{scroll-behavior:auto!important;transition:none!important}}
