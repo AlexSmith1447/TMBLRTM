@@ -4,6 +4,13 @@ on:
     paths:
       - 'scripts/test-iphone.mjs'
       - 'src/main.jsx'
+      - 'src/MobileTumblr.jsx'
+      - 'src/LiveArchive.jsx'
+      - 'src/discovery.js'
+      - 'src/discovery.css'
+      - 'index.html'
+      - 'public/icons/**'
+      - 'public/manifest.webmanifest'
       - '.github/workflows/iphone-live.yml'
   workflow_dispatch:
 jobs:
