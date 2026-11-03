@@ -1,0 +1,34 @@
+name: iPhone 2012 interface verification
+on:
+  push:
+    paths:
+      - 'src/MobileTumblr.jsx'
+      - 'src/iphone2012.css'
+      - 'src/LiveArchive.jsx'
+      - 'src/main.jsx'
+      - 'src/PhotoViewer.jsx'
+      - 'index.html'
+      - 'public/**'
+      - 'scripts/test-iphone.mjs'
+      - '.github/workflows/iphone-visual.yml'
+  workflow_dispatch:
+jobs:
+  iphone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build
+        run: npm run build
+      - name: Install browser controller
+        run: npm install --no-save --no-audit --no-fund playwright-core@1.57.0
+      - name: Start preview
+        run: |
+          npx vite preview --port 4173 --host 127.0.0.1 > /tmp/vite-preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+      - name: Test iPhone interface, photo viewer and Home Screen assets
+        run: node scripts/test-iphone.mjs
