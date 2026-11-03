@@ -51,7 +51,7 @@ function MobileTumblr({
       <strong className="tm-ios-nav-title">{title}</strong>
       <div className="tm-ios-nav-trailing">
        {screen==="feed"?<button className="tm-ios-history" onClick={onTime} title="Time controls" aria-label="Open Time Machine"><Clock3 size={19}/></button>:
-       screen==="explore"?<button onClick={()=>{setQuery("");inputRef.current?.focus()}} aria-label="Clear search"><X size={17}/></button>:
+       screen==="explore"&&query.trim()?<button onClick={()=>{setQuery("");inputRef.current?.focus()}} aria-label="Clear search"><X size={17}/></button>:
        <button className="tm-ios-history" onClick={onTime} aria-label="Time Machine"><Clock3 size={18}/></button>}
       </div>
     </div>
