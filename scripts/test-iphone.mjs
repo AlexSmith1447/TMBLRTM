@@ -33,7 +33,7 @@ try{
  console.log("PHOTO_VIEWER_OK");
  await phone.getByRole("button",{name:"Like",exact:true}).first().click();
  await phone.getByRole("button",{name:"Account",exact:true}).click();
- await phone.locator(".tm-ios-account-list button").filter({hasText:/^Likes/}).click();
+ await phone.locator(".tm-ios-account-list button").filter({hasText:"Likes"}).click();
  await phone.locator(".tt-post").first().waitFor({state:"visible"});
  console.log("LOCAL_LIKES_OK");
  await phone.getByRole("button",{name:"Search tags",exact:true}).click();
