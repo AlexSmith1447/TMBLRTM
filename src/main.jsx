@@ -56,7 +56,7 @@ function App(){
   const matchingBlogs=savedBlogs.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,2);
   const submitImport=e=>{e.preventDefault();const value=importValue.trim().replace(/^#/,"");if(!value){setImportError("Enter a blog or tag.");return}if(importMode==="blog"){const name=validBlog(value);if(!name){setImportError("Enter a valid Tumblr blog name.");return}setSavedBlogs(old=>[name,...old.filter(n=>n!==name)].slice(0,30));browseBlog(name)}else{browseTag(value)}setImportError("");setImportValue("")};
   const title=tab==="explore"?"Explore":tab==="likes"?"Likes":tab==="saved"?"Saved posts":tab==="notes"?"Posts":"Dashboard";
-  return <div className={"app classic immersive"+(night?" night":"")+(phoneUI?" has-iphone-ui":"")}>
+  return <div data-tm-ui-release="iphone2012-v1" className={"app classic immersive"+(night?" night":"")+(phoneUI?" has-iphone-ui":"")}>
     {phoneUI?<MobileTumblr date={date} tab={tab} blog={blog} tag={tag} filterType={filterType} followed={savedBlogs} notes={notes} onView={view} onTag={browseTag} onBlog={browseBlog} onType={browseType} onNewText={()=>setShowEditor(true)} onTime={()=>{setToolTab("time");setDrawer(true)}}/>:<>
     <header className="classic-topbar"><div className="classic-top-inner">
       <button className="classic-logo" onClick={()=>view("dashboard")} title="Dashboard">tumblr<span>.</span></button>
