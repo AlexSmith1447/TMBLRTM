@@ -98,7 +98,16 @@ export async function onRequestGet({request,env}){
   const raw=opts.mode==="blog"?data?.response?.posts:data?.response;
   if(!Array.isArray(raw))return json({error:"Unexpected Tumblr response."},502);
   const posts=raw.map(normalize).filter(p=>p.timestamp>0&&(!opts.before||p.timestamp<opts.before));
-  const nextBefore=posts.length?Math.min(...posts.map(p=>p.timestamp))-1:null;
-  return json({posts,mode:opts.mode,query:opts.mode==="blog"?opts.blog:opts.tag,hasMore:raw.length>=opts.limit,nextOffset:opts.offset+raw.length,nextBefore,source:"tumblr"});
+  // Tumblr /tagged is not offset-paginated, and may return fewer than 20 items
+  // even when older posts still exist. The next cursor must also respect
+  // featured_timestamp when provided by Tumblr.
+  const cursorTimes=opts.mode==="tag"
+   ?raw.map(p=>Number(p.featured_timestamp)||Number(p.timestamp)||0).filter(t=>t>0)
+   :posts.map(p=>p.timestamp);
+  const nextBefore=cursorTimes.length?Math.min(...cursorTimes)-1:null;
+  const hasMore=opts.mode==="tag"
+   ?!!raw.length&&nextBefore!==null&&(!opts.before||nextBefore<opts.before)
+   :raw.length>=opts.limit;
+  return json({posts,mode:opts.mode,query:opts.mode==="blog"?opts.blog:opts.tag,hasMore,nextOffset:opts.offset+raw.length,nextBefore,source:"tumblr"});
  }catch(e){return json({error:"Unable to reach Tumblr. Please try again.",code:"upstream_unavailable"},502)}
 }
