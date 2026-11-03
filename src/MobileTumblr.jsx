@@ -27,11 +27,11 @@ function MobileTumblr({
  const inputRef=useRef(null);
  const scrollRef=useRef(null);
  const isFeed=screen==="feed";
- const title=screen==="tags"?"Search Tags":screen==="account"?"Account":screen==="compose"?"New Post":tab==="likes"?"Likes":tab==="saved"?"Bookmarks":tab==="notes"?"Posts":blog?blog:tag?"#"+tag:filterType!=="all"?TYPES.find(t=>t.id===filterType)?.name+" Posts":"Dashboard";
+ const title=screen==="explore"?"Explore":screen==="account"?"Account":screen==="compose"?"New Post":tab==="likes"?"Likes":tab==="saved"?"Bookmarks":tab==="notes"?"Posts":blog?blog:tag?"#"+tag:filterType!=="all"?TYPES.find(t=>t.id===filterType)?.name+" Posts":"Dashboard";
  function change(view,nextScreen="feed"){
   if(view)onView(view);
   setScreen(nextScreen);setActiveSearch(false);
-  if(nextScreen==="tags")setTimeout(()=>inputRef.current?.focus(),30);
+  
   scrollRef.current?.scrollTo({top:0,behavior:"instant"});
  }
  function chooseTag(next){onTag(next);setQuery("");change(null,"feed")}
@@ -51,7 +51,7 @@ function MobileTumblr({
       <strong className="tm-ios-nav-title">{title}</strong>
       <div className="tm-ios-nav-trailing">
        {screen==="feed"?<button className="tm-ios-history" onClick={onTime} title="Time controls" aria-label="Open Time Machine"><Clock3 size={19}/></button>:
-       screen==="tags"?<button onClick={()=>{setQuery("");inputRef.current?.focus()}} aria-label="Clear search"><X size={17}/></button>:
+       screen==="explore"?<button onClick={()=>{setQuery("");inputRef.current?.focus()}} aria-label="Clear search"><X size={17}/></button>:
        <button className="tm-ios-history" onClick={onTime} aria-label="Time Machine"><Clock3 size={18}/></button>}
       </div>
     </div>
@@ -71,18 +71,19 @@ function MobileTumblr({
         initialType={filterType} followed={followed} onTag={chooseTag} onBlog={chooseBlog}
       />}
     </>}
-    {screen==="tags"&&<div className="tm-ios-tag-page">
+    {screen==="explore"&&<div className="tm-ios-tag-page tm-ios-explore-page">
       <form onSubmit={e=>{e.preventDefault();if(query.trim())chooseTag(query.trim().replace(/^#/,""))}}>
-        <div className="tm-ios-search-input"><Search size={17}/><input ref={inputRef} type="search" value={query} onFocus={()=>setActiveSearch(true)} onChange={e=>setQuery(e.target.value)} placeholder="Search tags" aria-label="Search Tumblr tags" autoComplete="off"/></div>
+        <div className="tm-ios-search-input"><Search size={17}/><input ref={inputRef} type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find old Tumblr tags" aria-label="Search Tumblr tags" autoComplete="off"/></div>
       </form>
-      <div className="tm-ios-section-header">{query?"MATCHING TAGS":"POPULAR TAGS"}</div>
-      <div className="tm-ios-tag-list">{matching.map((name,i)=><button key={name} onClick={()=>chooseTag(name)}>
-        <span className={"tm-ios-tag-icon n"+i}>#</span>
-        <span className="tm-ios-tag-label"><strong>{name}</strong><small>Browse posts</small></span>
-        <span className="tm-ios-chevron">›</span>
-      </button>)}
-      {matching.length===0&&query.trim()&&<button onClick={()=>chooseTag(query.trim().replace(/^#/,""))}><span className="tm-ios-tag-icon n0">#</span><span className="tm-ios-tag-label">Search for #{query.trim()}</span><span className="tm-ios-chevron">›</span></button>}</div>
-      <div className="tm-ios-tag-hint">Find posts from your selected time period.</div>
+      {query.trim()?<>
+        <div className="tm-ios-section-header">MATCHING TAGS</div>
+        <div className="tm-ios-tag-list">{matching.map((name,i)=><button key={name} onClick={()=>chooseTag(name)}><span className={"tm-ios-tag-icon n"+i}>#</span><span className="tm-ios-tag-label"><strong>{name}</strong><small>Browse historical posts</small></span><span className="tm-ios-chevron">›</span></button>)}
+        {!matching.length&&<button onClick={()=>chooseTag(query.trim().replace(/^#/,""))}><span className="tm-ios-tag-icon n0">#</span><span className="tm-ios-tag-label"><strong>Search #{query.trim()}</strong><small>Search Tumblr</small></span><span className="tm-ios-chevron">›</span></button>}</div>
+      </>:<>
+        <div className="tm-ios-section-header">BROWSE TAGS</div>
+        <div className="tm-ios-featured-tags">{tags.slice(0,9).map(name=><button key={name} onClick={()=>chooseTag(name)}>#{name}</button>)}</div>
+        <LiveArchive mobileMode date={date} tab="explore" initialTag="" initialBlog="" initialType="all" followed={followed} onTag={chooseTag} onBlog={chooseBlog}/>
+      </>}
     </div>}
     {screen==="account"&&<div className="tm-ios-account">
       <div className="tm-ios-section-header">ACCOUNT</div>
@@ -107,7 +108,7 @@ function MobileTumblr({
 
   <nav className="tm-ios-tabbar" aria-label="Tumblr iPhone bottom navigation">
     <button className={isFeed&&tab==="dashboard"&&!tag&&!blog?"selected":""} onClick={()=>change("dashboard")} aria-label="Dashboard"><Home size={25} fill={isFeed&&tab==="dashboard"&&!tag&&!blog?"currentColor":"none"}/><small>Dashboard</small></button>
-    <button className={screen==="tags"?"selected":""} onClick={()=>change(null,"tags")} aria-label="Search tags"><span className="tm-ios-tag-button">#</span><small>Tags</small></button>
+    <button className={screen==="explore"||(isFeed&&tab==="explore"&&!tag)?"selected":""} onClick={()=>change(null,"explore")} aria-label="Explore"><span className="tm-ios-tag-button">#</span><small>Explore</small></button>
     <button className={screen==="account"?"selected":""} onClick={()=>change(null,"account")} aria-label="Account"><UserRound size={24} fill={screen==="account"?"currentColor":"none"}/><small>Account</small></button>
     <button className={screen==="compose"?"selected compose-active":"compose-button"} onClick={()=>change(null,"compose")} aria-label="Compose"><SquarePen size={23}/><small>Post</small></button>
   </nav>
