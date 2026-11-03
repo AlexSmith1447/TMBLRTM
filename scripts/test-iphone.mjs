@@ -19,7 +19,15 @@ try{
    if(q.get("mode")==="info")return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({blog:{title:"staff",description:"A preserved Tumblr blog"}})});
    return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({posts:fixturePosts,nextBefore:null,nextOffset:2,hasMore:false})});
  });
- const r=await phone.goto(base,{waitUntil:"domcontentloaded",timeout:25000});assert.equal(r.status(),200);
+ let r;
+ for(let attempt=0;attempt<(base.includes("pages.dev")?18:1);attempt++){
+  r=await phone.goto(base,{waitUntil:"domcontentloaded",timeout:25000});
+  const tag=await phone.locator("[data-tm-ui-release]").getAttribute("data-tm-ui-release").catch(()=>null);
+  if(tag==="iphone2012-v1")break;
+  if(attempt===17)throw new Error("Cloudflare has not published iphone2012-v1 after repeated checks.");
+  await phone.waitForTimeout(5000);
+ }
+ assert.equal(r.status(),200);
  await phone.locator(".tm-iphone").waitFor({state:"visible",timeout:15000});
  await phone.locator(".tt-post").first().waitFor({state:"visible",timeout:15000});
  const dimensions=await phone.evaluate(()=>({width:innerWidth,body:document.documentElement.scrollWidth,shell:getComputedStyle(document.querySelector(".tm-iphone")).position,tabbar:Math.round(document.querySelector(".tm-ios-tabbar").getBoundingClientRect().height)}));
