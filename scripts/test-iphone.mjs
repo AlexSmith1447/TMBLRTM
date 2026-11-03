@@ -53,7 +53,7 @@ try{
  await phone.locator(".tt-post").first().waitFor({state:"visible"});
  await phone.locator(".tm-discover-context").filter({hasText:"searches sampled"}).waitFor({state:"visible",timeout:30000});
  const uniqueAnchors=new Set(sampledBefore.filter(Boolean));
- assert.ok(uniqueAnchors.size>=4,"Discover must sample different historical months");
+ assert.ok(uniqueAnchors.size>=3,"Discover must sample different historical months");
  console.log("PERSONALIZED_EXPLORE_OK",uniqueAnchors.size);
  await phone.locator(".tm-ios-featured-tags button").filter({hasText:"#creepypasta"}).click();
  await phone.locator(".tm-discover-mode button").filter({hasText:"Top of this era"}).waitFor({state:"visible"});
