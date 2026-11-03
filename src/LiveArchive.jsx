@@ -103,7 +103,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
   const results=[];
   for(let i=0;i<jobs.length;i+=3){
    if(signal.aborted)break;
-   const group=await Promise.allSettled(jobs.slice(i,i+3).map(x=>fetchPage({tag:x.tag,before:x.before,limit:20,signal})));
+   const group=await Promise.allSettled(jobs.slice(i,i+3).map(x=>fetchPage({blog:x.blog||null,tag:x.tag||null,before:x.before,limit:20,signal})));
    results.push(...group);
   }
   return results;
@@ -127,6 +127,17 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
    }else{
     const sets=[[0,4,8],[2,6,10],[1,5,9],[3,7,11]];
     jobs=topicPlan.flatMap(t=>eraAnchors(date,sets[page]||[]).map(before=>({tag:t,before})));
+    if(page===0){
+      // Taste also includes the original blogs you follow and have liked,
+      // not merely tags. Query only valid public Tumblr usernames.
+      const personalBlogs=[...new Set([
+        ...(followed||[]),
+        ...Object.values(liked||{}).map(p=>p?.blog),
+        ...Object.values(saved||{}).map(p=>p?.blog)
+      ])].filter(x=>typeof x==="string"&&validBlog(x)&&x!=="staff").slice(0,2);
+      const older=eraAnchors(date,[2])[0]||cutoff(date);
+      for(const name of personalBlogs)jobs.push({blog:name,before:older});
+    }
    }
    if(!jobs.length)return;
    const results=await fetchBatch(jobs,controller.signal);
