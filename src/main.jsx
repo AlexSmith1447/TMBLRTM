@@ -8,6 +8,7 @@ import "./style.css";
 import "./search.css";
 import "./classic2012.css";
 import "./iphone2012.css";
+import "./discovery.css";
 
 const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key))??def}catch{return def}};
 const userDate=()=>read("tm-date","2012-12-31");
