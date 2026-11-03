@@ -1,0 +1,24 @@
+name: Public iPhone PWA smoke check
+on:
+  push:
+    paths:
+      - 'scripts/test-iphone.mjs'
+      - 'src/main.jsx'
+      - '.github/workflows/iphone-live.yml'
+  workflow_dispatch:
+jobs:
+  public:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright-core@1.57.0
+      - name: Check publicly deployed Cloudflare iPhone app
+        env:
+          BASE_URL: https://tmblrtm.pages.dev/
+        run: node scripts/test-iphone.mjs
