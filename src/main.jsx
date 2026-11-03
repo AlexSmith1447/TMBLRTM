@@ -3,13 +3,16 @@ import {createRoot} from "react-dom/client";
 import {Home,Compass,Heart,Bookmark,CalendarDays,Users,ChevronRight,Menu,Sun,Moon,Info,Camera,Quote,Type,Link2,MessageSquare,Video,Headphones,Plus,ExternalLink,X,ArrowLeft,ArrowRight,Search,Clock3,SlidersHorizontal,BookOpen,Archive,Check} from "lucide-react";
 import CultureTimeline from "./CultureTimeline.jsx";
 import LiveArchive from "./LiveArchive.jsx";
+import MobileTumblr from "./MobileTumblr.jsx";
 import "./style.css";
 import "./search.css";
 import "./classic2012.css";
+import "./iphone2012.css";
 
 const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key))??def}catch{return def}};
 const userDate=()=>read("tm-date","2012-12-31");
 const formats=[["text","Text",Type],["photo","Photo",Camera],["quote","Quote",Quote],["link","Link",Link2],["chat","Chat",MessageSquare],["audio","Audio",Headphones],["video","Video",Video]];
+const phoneViewport=()=>typeof window!=="undefined"&&(window.matchMedia("(max-width: 700px)").matches||(/iPhone|iPod|Android.+Mobile/i.test(navigator.userAgent)&&window.innerWidth<1024));
 const validBlog=raw=>{let name=raw.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").replace(/\.tumblr\.com.*$/,"").replace(/\/.*$/,"");return /^[a-z0-9_-]{1,64}$/.test(name)?name:null};
 function App(){
   const [date,setDate]=useState(userDate);
@@ -19,6 +22,8 @@ function App(){
   const [blog,setBlog]=useState("");
   const [night,setNight]=useState(()=>read("tm-dark",false));
   const [mobile,setMobile]=useState(false);
+  const [phoneUI,setPhoneUI]=useState(phoneViewport);
+  useEffect(()=>{const refresh=()=>setPhoneUI(phoneViewport());window.addEventListener("resize",refresh);window.addEventListener("orientationchange",refresh);return()=>{window.removeEventListener("resize",refresh);window.removeEventListener("orientationchange",refresh)}},[]);
   const [notes,setNotes]=useState(()=>read("tm-posts",[]));
   const [showEditor,setShowEditor]=useState(false);
   const [draft,setDraft]=useState({title:"",text:"",tags:""});
@@ -51,7 +56,8 @@ function App(){
   const matchingBlogs=savedBlogs.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,2);
   const submitImport=e=>{e.preventDefault();const value=importValue.trim().replace(/^#/,"");if(!value){setImportError("Enter a blog or tag.");return}if(importMode==="blog"){const name=validBlog(value);if(!name){setImportError("Enter a valid Tumblr blog name.");return}setSavedBlogs(old=>[name,...old.filter(n=>n!==name)].slice(0,30));browseBlog(name)}else{browseTag(value)}setImportError("");setImportValue("")};
   const title=tab==="explore"?"Explore":tab==="likes"?"Likes":tab==="saved"?"Saved posts":tab==="notes"?"Posts":"Dashboard";
-  return <div className={"app classic immersive"+(night?" night":"")}>
+  return <div className={"app classic immersive"+(night?" night":"")+(phoneUI?" has-iphone-ui":"")}>
+    {phoneUI?<MobileTumblr date={date} tab={tab} blog={blog} tag={tag} filterType={filterType} followed={savedBlogs} notes={notes} onView={view} onTag={browseTag} onBlog={browseBlog} onType={browseType} onNewText={()=>setShowEditor(true)} onTime={()=>{setToolTab("time");setDrawer(true)}}/>:<>
     <header className="classic-topbar"><div className="classic-top-inner">
       <button className="classic-logo" onClick={()=>view("dashboard")} title="Dashboard">tumblr<span>.</span></button>
       <nav className={"classic-topnav"+(mobile?" expanded":"")} aria-label="Main navigation">
@@ -97,6 +103,7 @@ function App(){
         <section className="classic-sidebox classic-blog-section"><h2><Bookmark size={14}/> BLOGS</h2>{savedBlogs.slice(0,7).map(name=><div className="classic-blogrow" key={name}><button onClick={()=>browseBlog(name)}><span className="classic-mini-avatar">{name[0].toUpperCase()}</span>{name}</button><button onClick={()=>setSavedBlogs(savedBlogs.filter(x=>x!==name))} title={"Remove "+name}><X size={12}/></button></div>)}<div className="classic-addblog"><input aria-label="Add Tumblr username" id="newblog" placeholder="Follow a blog" maxLength={64} onKeyDown={e=>{if(e.key==="Enter"){const val=validBlog(e.currentTarget.value);if(val){setSavedBlogs([val,...savedBlogs.filter(x=>x!==val)]);e.currentTarget.value=""}}}}/><small>Type a username and press Enter</small></div></section>
       </aside>
     </div>
+    </>}
     {drawer&&<div className="tm-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setDrawer(false)}}>
       <aside className="tm-drawer" role="dialog" aria-modal="true" aria-label="Time Machine controls">
         <div className="tm-drawer-top"><div><div className="tm-drawer-eyebrow">BEHIND THE CURTAIN</div><h2><Clock3 size={24}/> Time Machine</h2><p>Control the era without changing the Tumblr experience.</p></div><button className="tm-close" onClick={()=>setDrawer(false)} ref={drawerCloseRef} aria-label="Close Time Machine"><X size={22}/></button></div>
