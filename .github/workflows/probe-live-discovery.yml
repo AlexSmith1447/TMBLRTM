@@ -1,0 +1,17 @@
+name: Measure surviving historical Tumblr tags
+on:
+  push:
+    paths:
+      - scripts/probe-live-discovery.mjs
+      - .github/workflows/probe-live-discovery.yml
+  workflow_dispatch:
+jobs:
+  public:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Sample real historical Tumblr API (counts only)
+        run: node scripts/probe-live-discovery.mjs
