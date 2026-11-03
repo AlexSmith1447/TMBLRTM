@@ -92,7 +92,7 @@ function BlogHeader({name,info,followed,onToggle,month,onMonth,cutoffDate,onThem
  </div>;
 }
 function FeedEmpty({message,icon:Icon=FolderOpen}){return <div className="tt-empty"><Icon size={30}/><p>{message}</p></div>}
-export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],onToggleFollow,initialType="all",immersive=true}){
+export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],onToggleFollow,initialType="all",immersive=true,mobileMode=false}){
  const [configured,setConfigured]=useState(null);
  const [posts,setPosts]=useState([]);
  const [loading,setLoading]=useState(false);
@@ -181,7 +181,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   if(failed.length)setError(good.length?"Some posts could not be loaded.":"Could not load more posts.");
   setMoreLoading(false);
  };
- return <section className={"tt-live"+(immersive?" tt-immersive":"")+(isBlog?" tm-blog-feed theme-"+activeTheme:"")}>
+ return <section className={"tt-live"+(immersive?" tt-immersive":"")+(mobileMode?" tm-native-mobile":"")+(isBlog?" tm-blog-feed theme-"+activeTheme:"")}>
   {isBlog&&<BlogHeader name={singleName} info={blogInfo} followed={followed.includes(singleName)} onToggle={onToggleFollow||(()=>{})} month={month} onMonth={setMonth} cutoffDate={date} onThemeChange={setActiveTheme}/>}
   {isDashboard&&names.length===0&&<FeedEmpty message="Follow some blogs using the sidebar, then their posts will appear here." icon={Users}/>}
   {isDashboard&&names.length>0&&<div className="tm-feed-source"><Users size={13}/> Following {names.length} {names.length===1?"blog":"blogs"} <span>·</span> <button onClick={()=>onBlog(names[0])}>View {names[0]} <ArrowRight size={12}/></button></div>}
