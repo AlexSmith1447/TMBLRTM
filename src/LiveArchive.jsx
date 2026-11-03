@@ -95,6 +95,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
  const earliest=oldestEraTimestamp(date,12);
  const ranked=useMemo(()=>rankDiscovered(posts,interests,{sort,tag,rotation}).filter(p=>p.date&&p.date<=date&&p.timestamp>=earliest),[posts,interests,sort,tag,rotation,date,earliest]);
  const pagesTotal=isExplore?4:3;
+ useEffect(()=>{setSort("top");setPage(0);setRotation(0);setPosts([]);recentBefore.current=null},[tag,date]);
  const canMore=sort==="recent"?hasRecent:page<pagesTotal-1;
  const shuffle=()=>{setRotation(n=>n+1);setPage(0);setPosts([]);setSelected([])};
  const switchSort=next=>{if(next===sort)return;setSort(next);setPage(0);setPosts([]);recentBefore.current=null;setHasRecent(true);setSampled(0)};
@@ -139,7 +140,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
     const nextBefore=next.length?Math.min(...next):null;
     const current=jobs[0].before;
     recentBefore.current=nextBefore!==null&&nextBefore<current?nextBefore:null;
-    setHasRecent(!!recentBefore.current&&good.some(x=>x.hasMore));
+    setHasRecent(!!recentBefore.current&&recentBefore.current>earliest&&good.some(x=>x.hasMore));
    }
    const usable=recentRows.filter(p=>p.timestamp<=cutoff(date)&&p.timestamp>=earliest);
    setPosts(old=>merge(page===0?[]:old,usable));
