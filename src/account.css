@@ -1,0 +1,39 @@
+/* Private account settings, using 2012 Tumblr's navy, white-paper and compact typography. */
+.tm-account-panel{color:#31465a;font-family:Arial,Helvetica,sans-serif;padding:16px;background:#fff;border:1px solid #dce2e8;border-radius:4px;box-shadow:0 1px 4px #071c2b40}
+.tm-account-panel.compact{box-shadow:none;border:0;border-radius:0;background:transparent;padding:8px 9px 18px}
+.tm-account-heading{display:flex;align-items:center;gap:11px;padding-bottom:14px;border-bottom:1px solid #e4e8eb}
+.tm-account-image{width:55px;height:55px;flex:none;border:2px solid #c4cfd8;box-shadow:0 1px 3px #11263855;border-radius:4px;overflow:hidden;display:flex;background:#41647f;color:#fff;align-items:center;justify-content:center}
+.tm-account-photo{display:block;width:100%;height:100%;object-fit:cover}
+.tm-account-letter{font:bold 32px Georgia,serif;color:#e4eef5}
+.tm-account-heading strong{font-size:15px;color:#2c4760;display:block;overflow-wrap:anywhere}
+.tm-account-heading small{display:block;color:#8d9daa;font-size:11px;line-height:1.4;margin-top:4px}
+.tm-account-login{display:grid;gap:8px;padding:16px 0 0}
+.tm-account-login label{font-weight:bold;color:#40586b;font-size:12px}
+.tm-account-login input{width:100%;background:#fff;border:1px solid #bfcbd5;border-radius:3px;padding:9px 10px;font-size:16px;box-shadow:inset 0 1px 2px #0001}
+.tm-account-button,.tm-account-primary,.tm-account-signout{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #aabfcf;border-radius:3px;padding:8px 10px;font-size:11px;font-weight:bold;color:#43637c;background:linear-gradient(#fff,#e9eff3);white-space:nowrap;min-height:32px;cursor:pointer}
+.tm-account-primary{background:linear-gradient(#5b94c2,#316e9b);border-color:#28638f;color:white}
+.tm-account-signout{width:100%;color:#607586;margin-top:10px;background:linear-gradient(#fff,#f2f5f7)}
+.tm-account-button:disabled,.tm-account-primary:disabled{opacity:.5}
+.tm-account-note{display:flex;align-items:center;gap:6px;margin:6px 0 0;color:#8d9ba7;font-size:10px}
+.tm-account-setting{display:flex;align-items:center;justify-content:space-between;gap:13px;border-bottom:1px solid #e7eaed;padding:13px 0}
+.tm-account-setting strong{display:block;font-size:12px;color:#3d556a}
+.tm-account-setting small{display:block;color:#8a9ba9;font-size:10px;line-height:1.5;margin-top:4px;max-width:340px}
+.tm-account-error{color:#a22e36;font-size:11px;margin:10px 0 0}
+.tm-account-success{display:flex;align-items:center;gap:6px;color:#3b7759;font-size:11px;margin:11px 0 0}
+.tm-account-help{display:grid;gap:10px;padding:12px 0;font-size:12px;color:#637c8f}
+.tm-account-help p{margin:0;line-height:1.5}
+.tm-account-help a{color:#287bac;font-size:11px}
+.tm-account-modal-wrap{position:fixed;inset:0;background:#0e2034b8;z-index:600;display:flex;align-items:center;justify-content:center;padding:20px}
+.tm-account-modal{max-width:460px;width:100%;max-height:90vh;overflow:auto;position:relative}
+.tm-account-modal-close{position:absolute;top:7px;right:7px;z-index:2;background:#eef2f5;border:1px solid #b9cad7;border-radius:3px;display:grid;place-items:center;width:27px;height:27px;color:#516c7f}
+.tm-account-sidebar-button{display:flex;align-items:center;text-align:left;gap:8px;width:100%;background:none;border:0;padding:0;color:#dbe9f3}
+.tm-account-sidebar-button:hover{opacity:.85}
+.tm-account-sidebar-image{display:grid;place-items:center;width:42px;height:42px;background:#6a8ba2;border-radius:3px;border:1px solid #a2b6c4;overflow:hidden;color:#fff;font:bold 25px Georgia,serif}
+.tm-account-sidebar-image img{width:100%;height:100%;object-fit:cover}
+.tm-account-sidebar-label strong{font-size:12px;display:block}
+.tm-account-sidebar-label small{font-size:10px;display:block;opacity:.75;margin-top:3px}
+.tm-iphone .tm-account-panel{border:0;border-radius:0;box-shadow:none;margin:8px;background:#f8fafb}
+.tm-iphone .tm-account-panel.compact{padding:12px;background:#f6f7f8}
+.tm-iphone .tm-account-heading strong{font-size:14px}
+.tm-iphone .tm-account-setting small{max-width:220px}
+@media(max-width:700px){.tm-account-modal-wrap{padding:12px}.tm-account-modal{max-height:calc(100vh - 24px)}}
