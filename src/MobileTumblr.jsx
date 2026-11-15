@@ -16,9 +16,9 @@ const TYPES=[
  {id:"chat",name:"Chat",icon:MessageCircle},
  {id:"video",name:"Video",icon:Film}
 ];
-const tags=["creepypasta","slenderman","scene","emo","invader zim","nyancat","homestuck","minecraft","photography","gothic","nintendocore"];
+
 function MobileTumblr({
- date,tab,blog,tag,filterType,followed,notes,account,onToggleFollow,
+ date,tab,blog,tag,filterType,followed,notes,account,onToggleFollow,suggestedTags=[],
  onView,onTag,onBlog,onType,onTime,onNewText
 }){
  const [screen,setScreen]=useState("feed");
@@ -40,7 +40,7 @@ function MobileTumblr({
  function compose(type){setScreen("feed");if(type==="text")onNewText();else onType(type)}
  useEffect(()=>{if(screen==="feed")scrollRef.current?.scrollTo({top:0,behavior:"instant"})},[tab,blog,tag,filterType,date]);
  useEffect(()=>{const listener=e=>{if(e.key==="Escape"&&screen!=="feed")setScreen("feed")};window.addEventListener("keydown",listener);return()=>window.removeEventListener("keydown",listener)},[screen]);
- const matching=tags.filter(x=>!query||x.includes(query.toLowerCase())).slice(0,10);
+ const matching=suggestedTags.filter(x=>!query||x.includes(query.toLowerCase())).slice(0,10);
  const isFullCompose=screen==="compose";
  return <div className={"tm-iphone"+(isFullCompose?" tm-iphone-composing":"")} aria-label="Tumblr 2012 iPhone interface">
   <div className="tm-ios-toolbar">
@@ -82,7 +82,7 @@ function MobileTumblr({
         {!matching.length&&<button onClick={()=>chooseTag(query.trim().replace(/^#/,""))}><span className="tm-ios-tag-icon n0">#</span><span className="tm-ios-tag-label"><strong>Search #{query.trim()}</strong><small>Search Tumblr</small></span><span className="tm-ios-chevron">›</span></button>}</div>
       </>:<>
         <div className="tm-ios-section-header">BROWSE TAGS</div>
-        <div className="tm-ios-featured-tags">{tags.slice(0,9).map(name=><button key={name} onClick={()=>chooseTag(name)}>#{name}</button>)}</div>
+        <div className="tm-ios-featured-tags">{suggestedTags.slice(0,9).map(name=><button key={name} onClick={()=>chooseTag(name)}>#{name}</button>)}</div>
         <LiveArchive mobileMode account={account} onToggleFollow={onToggleFollow} date={date} tab="explore" initialTag="" initialBlog="" initialType="all" followed={followed} onTag={chooseTag} onBlog={chooseBlog}/>
       </>}
     </div>}
