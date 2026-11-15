@@ -6,6 +6,7 @@ import LiveArchive from "./LiveArchive.jsx";
 import MobileTumblr from "./MobileTumblr.jsx";
 import AccountPanel from "./AccountPanel.jsx";
 import {usePseudoAccount} from "./account.js";
+import {DEFAULT_TOPICS,buildPostGraph,chooseGraphTopics} from "./graphDiscovery.js";
 import "./style.css";
 import "./search.css";
 import "./classic2012.css";
@@ -67,13 +68,17 @@ function App(){
     setDraft({title:"",text:"",tags:""});setShowEditor(false);setTab("notes")
   };
   const goSearch=e=>{e.preventDefault();const value=search.trim().replace(/^#/,"");if(value){browseTag(value);setSearch("");setSearchOpen(false)}};
-  const candidateTags=["creepypasta","slenderman","invader zim","nyancat","scene","emo","homestuck","photography","minecraft","gir"];
+  const profileGraph=buildPostGraph([
+    ...Object.values(account.status.signedIn?account.profile.likes:read("tm2-likes",{})),
+    ...Object.values(account.status.signedIn?account.profile.saved:read("tm2-saved",{}))
+   ],{liked:account.status.signedIn?account.profile.likes:read("tm2-likes",{}),saved:account.status.signedIn?account.profile.saved:read("tm2-saved",{}),followed});
+  const candidateTags=chooseGraphTopics(profileGraph,0,10);
   const suggestions=candidateTags.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,4);
   const matchingBlogs=followed.filter(x=>!search.trim()||x.includes(search.toLowerCase())).slice(0,2);
   const submitImport=e=>{e.preventDefault();const value=importValue.trim().replace(/^#/,"");if(!value){setImportError("Enter a blog or tag.");return}if(importMode==="blog"){const name=validBlog(value);if(!name){setImportError("Enter a valid Tumblr blog name.");return}if(!followed.includes(name))toggleFollow(name);browseBlog(name)}else{browseTag(value)}setImportError("");setImportValue("")};
   const title=tab==="explore"?"Explore":tab==="likes"?"Likes":tab==="saved"?"Saved posts":tab==="notes"?"Posts":"Dashboard";
   return <div data-tm-ui-release="iphone2012-v1" className={"app classic immersive"+(night?" night":"")+(phoneUI?" has-iphone-ui":"")}>
-    {phoneUI?<MobileTumblr account={account} date={date} tab={tab} blog={blog} tag={tag} filterType={filterType} followed={followed} notes={userNotes} onToggleFollow={toggleFollow} onView={view} onTag={browseTag} onBlog={browseBlog} onType={browseType} onNewText={()=>setShowEditor(true)} onTime={()=>{setToolTab("time");setDrawer(true)}}/>:<>
+    {phoneUI?<MobileTumblr account={account} date={date} tab={tab} blog={blog} tag={tag} filterType={filterType} followed={followed} notes={userNotes} suggestedTags={candidateTags} onToggleFollow={toggleFollow} onView={view} onTag={browseTag} onBlog={browseBlog} onType={browseType} onNewText={()=>setShowEditor(true)} onTime={()=>{setToolTab("time");setDrawer(true)}}/>:<>
     <header className="classic-topbar"><div className="classic-top-inner">
       <button className="classic-logo" onClick={()=>view("dashboard")} title="Dashboard">tumblr<span>.</span></button>
       <nav className={"classic-topnav"+(mobile?" expanded":"")} aria-label="Main navigation">
@@ -118,7 +123,7 @@ function App(){
           <button onClick={()=>view("saved")}><Bookmark size={15}/> Saved posts <ChevronRight size={12}/></button>
           <button onClick={()=>view("notes")}><Type size={15}/> Posts <ChevronRight size={12}/></button>
         </nav></div>
-        <section className="classic-sidebox classic-tag-section"><h2><Compass size={14}/> TAGS</h2><div className="classic-tags">{["creepypasta","slenderman","invader zim","nyancat","emo","scene","homestuck","photography"].map(t=><button key={t} onClick={()=>browseTag(t)}># {t}</button>)}</div></section>
+        <section className="classic-sidebox classic-tag-section"><h2><Compass size={14}/> TAGS</h2><div className="classic-tags">{candidateTags.slice(0,8).map(t=><button key={t} onClick={()=>browseTag(t)}># {t}</button>)}</div></section>
         <section className="classic-sidebox classic-blog-section"><h2><Bookmark size={14}/> BLOGS</h2>{followed.slice(0,7).map(name=><div className="classic-blogrow" key={name}><button onClick={()=>browseBlog(name)}><span className="classic-mini-avatar">{name[0].toUpperCase()}</span>{name}</button><button onClick={()=>toggleFollow(name)} title={"Remove "+name}><X size={12}/></button></div>)}<div className="classic-addblog"><input aria-label="Add Tumblr username" id="newblog" placeholder="Follow a blog" maxLength={64} onKeyDown={e=>{if(e.key==="Enter"){const val=validBlog(e.currentTarget.value);if(val){if(!followed.includes(val))toggleFollow(val);e.currentTarget.value=""}}}}/><small>Type a username and press Enter</small></div></section>
       </aside>
     </div>
