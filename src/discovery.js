@@ -6,21 +6,6 @@ export const discoverySeeds=[
  "emo","nintendocore","minecraft","gothic","pixel art",
  "nyan cat","myspace","adventure time","photography","vintage"
 ];
-const related={
- "creepypasta":["slenderman","horror","marble hornets","scary stories"],
- "slenderman":["creepypasta","marble hornets","horror"],
- "invader zim":["gir","nickelodeon","cartoons"],
- "gir":["invader zim","cartoons"],
- "emo":["scene","post hardcore","music","myspace"],
- "scene":["emo","myspace","scene hair","post hardcore"],
- "gothic":["goth","dark art","horror"],
- "nintendocore":["chiptune","8bit","videogames"],
- "minecraft":["videogames","pixel art"],
- "homestuck":["fandom","webcomics"],
- "adventure time":["cartoons","fandom"],
- "photography":["vintage","film"],
- "pixel art":["8bit","videogames"]
-};
 const noise=new Set(["2012","2013","2014","2011","2010","2009","2015","gif","gifs","photo","photos","picture","pictures","post","reblog","tumblr","me","text","art","love","cute","lol","music","mine","original","edit","edits","queue","follow","like"]);
 const normalize=x=>String(x||"").toLowerCase().replace(/^#/,"").replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
 export const hash=x=>{let n=2166136261;for(const c of String(x)){n^=c.charCodeAt(0);n=Math.imul(n,16777619)}return n>>>0};
@@ -35,7 +20,6 @@ export function tasteProfile(liked={},saved={},followed=[]){
   }
  }
  for(const blog of followed||[])if(typeof blog==="string")blogWeights.set(normalize(blog),(blogWeights.get(normalize(blog))||0)+2);
- for(const [tag,weight] of [...weights])for(const neighbor of related[tag]||[])add(neighbor,weight*.18);
  return {weights,blogWeights,hasTaste:weights.size>0,likedIds:new Set(Object.keys(liked||{})),savedIds:new Set(Object.keys(saved||{}))};
 }
 export function suggestedTags(profile,rotation=0,count=4){
