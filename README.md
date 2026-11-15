@@ -1,3 +1,15 @@
+## Wesley1337 private account and connected discovery (November 2026)
+
+**Account:** A single private pseudo-account, **Wesley1337**, can synchronize followed Tumblr blogs, local likes, saved posts, drafts and an uploaded picture across the iPhone web app and desktop site. It uses a signed secure cookie plus a Cloudflare D1 database. It does not connect to a real Tumblr account.
+
+**Required one-time configuration:** create a Cloudflare D1 database bound to **TM_DB** and add the encrypted Production secret **TM_ACCOUNT_PASSWORD**, then redeploy. The account creates its own minimal database tables when first used. See [Account setup](docs/SYNCED_ACCOUNT.md). Browsing remains available before setup; unsynced guest activity remains local.
+
+**Explore:** recommendations now start with a graph extracted from real surviving Tumblr posts: co-occurring tags, reblog origins, followed blogs and liked/saved items. The old manually written fandom adjacency list is no longer the source for the primary Explore feed. People without a taste history receive rotating broad subjects. Related blogs can be followed through the normal UI. The existing images/photo viewer and 2012 design are preserved.
+
+**Verification:** GitHub Actions runs the public iPhone checks, automated discovery/account tests, and the React build. A successful build does not itself configure D1 or prove cross-device sign-in in live Cloudflare.
+
+---
+
 ## Personalized historical discovery (November 2026)
 
 The **Explore** tab on the 2012 iPhone app and the **Explore** navigation on desktop now use the same `LiveArchive` and `discovery.js` ranking logic.
@@ -6,7 +18,7 @@ The **Explore** tab on the 2012 iPhone app and the **Explore** navigation on des
 - Opening a tag defaults to **Top of this era**: posts are sampled from multiple points over approximately the 12 months preceding the selected Time Machine date, deduplicated, then ranked by their **current** Tumblr note count plus topic relevance, existing likes/saves and diversity across blogs.
 - **Most recent** switches to a genuinely chronological tag feed. Tumblr's `/tagged` API does not support offset pagination or an official Top sort; the importer uses `before` timestamps and `featured_timestamp` where provided. Short result batches do not automatically mean the archive has ended.
 - **Find more from this era** samples additional months. The selected cutoff is always respected. Some deleted, private or unindexed posts simply cannot be recovered.
-- Personal likes, saves, and followed blogs are saved **in the browser**: the desktop and mobile interfaces share the same software, but this does **not** yet synchronize tastes or bookmarks *between different devices*.
+- When signed into **Wesley1337**, likes, saved posts, followed blogs, drafts and avatar are synchronized through Cloudflare D1. **Guest mode** remains local, and old device data can be imported explicitly via the Account screen.
 - **Top is not a literal replay of Tumblr's historical trending chart.** Current note counts don't reconstruct the note totals as they existed in 2012; the site ranks the posts that its historical API sampling can actually retrieve. No random posts, fake notes or fabricated historical interactions are introduced.
 
 Live public API measurements in November 2026 showed that `#emo` at a 2012-12-31 cutoff returned just 12 posts from that **single day**, even though more pages were available. `#creepypasta` returned 20 posts from Dec 29–31. This is why sampling several calendar points matters.
