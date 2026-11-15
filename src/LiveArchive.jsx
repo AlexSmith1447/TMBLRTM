@@ -219,7 +219,7 @@ function BlogHeader({name,info,followed,onToggle,month,onMonth,cutoffDate,onThem
  </div>;
 }
 function FeedEmpty({message,icon:Icon=FolderOpen}){return <div className="tt-empty"><Icon size={30}/><p>{message}</p></div>}
-export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],onToggleFollow,initialType="all",immersive=true,mobileMode=false}){
+export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlog,followed=[],onToggleFollow,account,initialType="all",immersive=true,mobileMode=false}){
  const [configured,setConfigured]=useState(null);
  const [posts,setPosts]=useState([]);
  const [loading,setLoading]=useState(false);
@@ -232,8 +232,11 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  const [month,setMonth]=useState(null);
  const [type,setType]=useState(initialType);
  const [query,setQuery]=useState("");
- const [liked,setLiked]=useState(()=>read("tm2-likes",{}));
- const [saved,setSaved]=useState(()=>read("tm2-saved",{}));
+ const [localLiked,setLiked]=useState(()=>read("tm2-likes",{}));
+ const [localSaved,setSaved]=useState(()=>read("tm2-saved",{}));
+ const synced=Boolean(account?.status.signedIn);
+ const liked=synced?account.profile.likes:localLiked;
+ const saved=synced?account.profile.saved:localSaved;
  const requestGuard=useRef(null);
  const tabPinned=tab==="likes"||tab==="saved";
  const isBlog=!!initialBlog;
@@ -246,8 +249,8 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
  const singleName=isBlog?initialBlog:null;
  const effectiveTag=initialTag||"nostalgia";
  useEffect(()=>{let active=true;fetch("/api/tumblr?mode=status").then(r=>r.json()).then(data=>{if(active)setConfigured(!!data.configured)}).catch(()=>{if(active)setConfigured(false)});return()=>{active=false}},[]);
- useEffect(()=>{localStorage.setItem("tm2-likes",JSON.stringify(liked))},[liked]);
- useEffect(()=>{localStorage.setItem("tm2-saved",JSON.stringify(saved))},[saved]);
+ useEffect(()=>{if(!synced)localStorage.setItem("tm2-likes",JSON.stringify(localLiked))},[localLiked,synced]);
+ useEffect(()=>{if(!synced)localStorage.setItem("tm2-saved",JSON.stringify(localSaved))},[localSaved,synced]);
  useEffect(()=>{setType(initialType)},[initialType]);
  useEffect(()=>{setMonth(null);setActiveTheme(read("tm-blog-themes",{})[singleName]||themeFor(singleName))},[singleName]);
  useEffect(()=>{setBlogInfo(null);if(!isBlog)return;
@@ -290,8 +293,8 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
    (!query||[p.blog,p.title,p.text,p.quote,...(p.tags||[])].filter(Boolean).join(" ").toLowerCase().includes(query.toLowerCase()))
  ).sort((a,b)=>b.timestamp-a.timestamp),[base,type,query,date]);
  const hasMore=Object.values(cursors).some(x=>x.hasMore);
- const like=post=>setLiked(old=>{const x={...old};if(x[post.id])delete x[post.id];else x[post.id]=post;return x});
- const save=post=>setSaved(old=>{const x={...old};if(x[post.id])delete x[post.id];else x[post.id]=post;return x});
+ const like=post=>synced?account.like(post):setLiked(old=>{const x={...old};if(x[post.id])delete x[post.id];else x[post.id]=post;return x});
+ const save=post=>synced?account.save(post):setSaved(old=>{const x={...old};if(x[post.id])delete x[post.id];else x[post.id]=post;return x});
  const loadMore=async()=>{
   if(moreLoading||loading||!hasMore)return;
   setMoreLoading(true);setError("");
