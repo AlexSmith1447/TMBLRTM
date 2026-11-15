@@ -1,6 +1,7 @@
 import React,{useEffect,useState,useRef} from "react";
 import {Home,Search,UserRound,SquarePen,ChevronLeft,Clock3,RefreshCw,Heart,Bookmark,Users,Camera,Type,Quote,Link2,MessageCircle,Film,Headphones,Plus,ArrowLeft,X,ExternalLink,Compass} from "lucide-react";
 import LiveArchive from "./LiveArchive.jsx";
+import AccountPanel from "./AccountPanel.jsx";
 
 /**
  * Tumblr 3.0 (June-November 2012) inspired standalone iPhone interface.
@@ -17,7 +18,7 @@ const TYPES=[
 ];
 const tags=["creepypasta","slenderman","scene","emo","invader zim","nyancat","homestuck","minecraft","photography","gothic","nintendocore"];
 function MobileTumblr({
- date,tab,blog,tag,filterType,followed,notes,
+ date,tab,blog,tag,filterType,followed,notes,account,onToggleFollow,
  onView,onTag,onBlog,onType,onTime,onNewText
 }){
  const [screen,setScreen]=useState("feed");
@@ -68,7 +69,7 @@ function MobileTumblr({
         key={"mobile-"+refreshKey}
         mobileMode
         date={date} tab={tab} initialBlog={blog} initialTag={tag}
-        initialType={filterType} followed={followed} onTag={chooseTag} onBlog={chooseBlog}
+        initialType={filterType} followed={followed} account={account} onToggleFollow={onToggleFollow} onTag={chooseTag} onBlog={chooseBlog}
       />}
     </>}
     {screen==="explore"&&<div className="tm-ios-tag-page tm-ios-explore-page">
@@ -82,12 +83,12 @@ function MobileTumblr({
       </>:<>
         <div className="tm-ios-section-header">BROWSE TAGS</div>
         <div className="tm-ios-featured-tags">{tags.slice(0,9).map(name=><button key={name} onClick={()=>chooseTag(name)}>#{name}</button>)}</div>
-        <LiveArchive mobileMode date={date} tab="explore" initialTag="" initialBlog="" initialType="all" followed={followed} onTag={chooseTag} onBlog={chooseBlog}/>
+        <LiveArchive mobileMode account={account} onToggleFollow={onToggleFollow} date={date} tab="explore" initialTag="" initialBlog="" initialType="all" followed={followed} onTag={chooseTag} onBlog={chooseBlog}/>
       </>}
     </div>}
     {screen==="account"&&<div className="tm-ios-account">
       <div className="tm-ios-section-header">ACCOUNT</div>
-      <div className="tm-ios-account-profile"><span className="tm-ios-account-avatar">t</span><span><strong>timecapsule</strong><small>Your personal time capsule</small></span></div>
+      <AccountPanel compact account={account}/>
       <div className="tm-ios-account-list">
         <button onClick={()=>change("dashboard")}><Home size={19}/> Dashboard <span>›</span></button>
         <button onClick={()=>change("likes")}><Heart size={19}/> Likes <span>›</span></button>
