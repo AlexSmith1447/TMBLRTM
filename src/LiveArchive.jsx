@@ -1,7 +1,8 @@
 import React,{useEffect,useMemo,useState,useRef,useCallback} from "react";
 import {AlertCircle,ArrowLeft,ArrowRight,ArrowUpRight,Bookmark,CalendarDays,Camera,Check,ChevronLeft,ChevronRight,ExternalLink,Heart,Image as ImageIcon,Loader2,Plus,Repeat2,RefreshCw,Search,SlidersHorizontal,Users,X,FolderOpen,LayoutGrid,Music,Film,Quote,Link2} from "lucide-react";
 import PhotoViewer from "./PhotoViewer.jsx";
-import {tasteProfile,suggestedTags,eraAnchors,oldestEraTimestamp,rankDiscovered} from "./discovery.js";
+import {tasteProfile,eraAnchors,oldestEraTimestamp,rankDiscovered} from "./discovery.js";
+import {buildPostGraph,chooseGraphTopics,relatedBlogs,buildDiscoveryJobs} from "./graphDiscovery.js";
 import "./live.css";
 import "./blog.css";
 
@@ -91,7 +92,9 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
  const interests=useMemo(()=>tasteProfile(liked,saved,followed),[liked,saved,followed.join("|")]);
  const isExplore=!tag;
  const topicKey=tag||"for-you";
- const topicPlan=useMemo(()=>tag?[tag]:suggestedTags(interests,rotation,4),[topicKey,rotation]);
+ const graph=useMemo(()=>buildPostGraph(posts,{liked,saved,followed}),[posts,liked,saved,followed]);
+ const topicPlan=tag?[tag]:chooseGraphTopics(graph,rotation,4);
+ const blogSuggestions=useMemo(()=>relatedBlogs(graph,followed,rotation,6),[graph,followed,rotation]);
  const earliest=oldestEraTimestamp(date,12);
  const ranked=useMemo(()=>rankDiscovered(posts,interests,{sort,tag,rotation}).filter(p=>p.date&&p.date<=date&&p.timestamp>=earliest),[posts,interests,sort,tag,rotation,date,earliest]);
  const pagesTotal=isExplore?4:3;
@@ -125,19 +128,8 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
     const all=[0,3,6,9,1,2,4,5,7,8,10,11];
     jobs=eraAnchors(date,all.slice(page*4,page*4+4)).map(before=>({tag,before}));
    }else{
-    const sets=[[0,4,8],[2,6,10],[1,5,9],[3,7,11]];
-    jobs=topicPlan.flatMap(t=>eraAnchors(date,sets[page]||[]).map(before=>({tag:t,before})));
-    if(page===0){
-      // Taste also includes the original blogs you follow and have liked,
-      // not merely tags. Query only valid public Tumblr usernames.
-      const personalBlogs=[...new Set([
-        ...(followed||[]),
-        ...Object.values(liked||{}).map(p=>p?.blog),
-        ...Object.values(saved||{}).map(p=>p?.blog)
-      ])].filter(x=>typeof x==="string"&&validBlog(x)&&x!=="staff").slice(0,2);
-      const older=eraAnchors(date,[2])[0]||cutoff(date);
-      for(const name of personalBlogs)jobs.push({blog:name,before:older});
-    }
+    const plan=buildDiscoveryJobs({posts,liked,saved,followed,rotation,page,date,anchors:eraAnchors});
+    jobs=plan.jobs;setSelected(plan.topics);
    }
    if(!jobs.length)return;
    const results=await fetchBatch(jobs,controller.signal);
@@ -156,7 +148,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
    const usable=recentRows.filter(p=>p.timestamp<=cutoff(date)&&p.timestamp>=earliest);
    setPosts(old=>merge(page===0?[]:old,usable));
    setSampled(old=>(page===0?0:old)+jobs.length);
-   if(page===0)setSelected(topicPlan);
+   if(page===0&&tag)setSelected(topicPlan);
    if(bad.length)setPartial(good.length?bad.length+" source request(s) unavailable; showing what we found.":"");
    if(!good.length&&bad.length)setError(bad[0].reason?.message||"Could not reach Tumblr.");
   };
@@ -167,13 +159,19 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
  return <div className={"tm-discover"+(mobileMode?" tm-discover-mobile":"")}>
   <div className="tm-discover-header">
    <div><span className="tm-discover-kicker">{tag?"TAG ARCHIVE":"EXPLORE TUMBLR"}</span>
-    <h2>{tag?"#"+tag:"For You"}</h2>
-    <p>{tag?"Discover popular surviving posts from across the era.":"A personal mix of preserved posts, based on the tags and blogs you like."}</p>
+    <h2>{tag?"#"+tag:"Explore"}</h2>
+    <p>{tag?"Discover popular surviving posts from across the era.":"Discover posts and blogs through shared tags and reblogs."}</p>
    </div>
-   {isExplore&&<button type="button" className="tm-discover-refresh" onClick={shuffle} title="Try other topics"><RefreshCw size={15}/> Mix it up</button>}
+   {isExplore&&<button type="button" className="tm-discover-refresh" onClick={shuffle} title="Discover more"><RefreshCw size={15}/> Refresh</button>}
   </div>
   {isExplore&&<div className="tm-discover-topics">
    {(selected.length?selected:topicPlan).map(t=><button key={t} onClick={()=>onTag(t)}>#{t}</button>)}
+  </div>}
+  {isExplore&&blogSuggestions.length>0&&<div className="tm-discover-related-blogs">
+    <strong>Recommended blogs</strong>
+    <div>{blogSuggestions.map(b=><button type="button" key={b.name} onClick={()=>onBlog(b.name)}>
+      <span>{b.name.slice(0,1).toUpperCase()}</span><small>{b.name}</small>
+    </button>)}</div>
   </div>}
   {tag&&<div className="tm-discover-mode" role="group" aria-label="Tag post sorting">
    <button className={sort==="top"?"active":""} onClick={()=>switchSort("top")} aria-pressed={sort==="top"}><Heart size={14}/> Top of this era</button>
