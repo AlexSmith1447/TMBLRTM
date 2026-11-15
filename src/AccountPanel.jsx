@@ -5,18 +5,29 @@ import "./account.css";
 async function resizeImage(file){
  if(!/^image\/(jpeg|png|webp)$/.test(file.type))throw Error("Choose a JPEG, PNG or WebP picture.");
  if(file.size>12*1024*1024)throw Error("Image must be under 12 MB.");
- const bitmap=await createImageBitmap(file);
+ let bitmap,dispose=()=>{};
+ if(typeof createImageBitmap==="function"){
+  bitmap=await createImageBitmap(file);
+  dispose=()=>bitmap.close?.();
+ }else{
+  const url=URL.createObjectURL(file),img=new Image();
+  try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error("Could not open picture"));img.src=url})}
+  catch(e){URL.revokeObjectURL(url);throw e}
+  bitmap=img;dispose=()=>URL.revokeObjectURL(url);
+ }
  try{
-  const side=Math.min(bitmap.width,bitmap.height),size=160;
+  const width=bitmap.naturalWidth||bitmap.width,height=bitmap.naturalHeight||bitmap.height;
+  const side=Math.min(width,height),size=160;
   const canvas=document.createElement("canvas");canvas.width=size;canvas.height=size;
   const ctx=canvas.getContext("2d");
-  const x=(bitmap.width-side)/2,y=(bitmap.height-side)/2;
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,size,size);
+  const x=(width-side)/2,y=(height-side)/2;
   ctx.drawImage(bitmap,x,y,side,side,0,0,size,size);
   let uri=canvas.toDataURL("image/jpeg",0.82);
   if(uri.length>110000)uri=canvas.toDataURL("image/jpeg",0.64);
   if(uri.length>110000)throw Error("Image couldn't be compressed; try another picture.");
   return uri;
- }finally{bitmap.close?.()}
+ }finally{dispose()}
 }
 export default function AccountPanel({account,compact=false}){
  const {status,profile,error,pending,login,logout,avatar,refresh,importLocal}=account;
