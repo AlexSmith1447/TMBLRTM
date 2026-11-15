@@ -118,7 +118,7 @@ async function setItem(db,body){
   const d=body.post;
   if(!d||typeof d!=="object")return json({error:"Invalid draft"},400);
   payload=JSON.stringify({id,title:String(d.title||"").slice(0,200),
-   text:String(d.text||"").slice(0,8000),tags:String(d.tags||"").slice(0,300),
+   text:String(d.text||"").slice(0,8000),tags:Array.isArray(d.tags)?d.tags.filter(t=>typeof t==="string").slice(0,20).map(t=>t.slice(0,60)):String(d.tags||"").split(",").map(t=>t.trim()).filter(Boolean).slice(0,20),
    date:String(d.date||"").slice(0,10),type:"text"});
  }
  await db.prepare("INSERT INTO tm_items(kind,item_id,payload,updated_at) VALUES(?,?,?,?) ON CONFLICT(kind,item_id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at")
@@ -139,7 +139,7 @@ async function bulkImport(db,data){
  }
  for(const d of (Array.isArray(data.drafts)?data.drafts:[]).slice(0,100)){
   const id=String(d?.id||"");if(!validID(id))continue;
-  queries.push(db.prepare("INSERT OR IGNORE INTO tm_items(kind,item_id,payload,updated_at) VALUES('draft',?,?,?)").bind(id,JSON.stringify({id,title:String(d.title||"").slice(0,200),text:String(d.text||"").slice(0,8000),date:String(d.date||"").slice(0,10),type:"text"}),Date.now()));
+  queries.push(db.prepare("INSERT OR IGNORE INTO tm_items(kind,item_id,payload,updated_at) VALUES('draft',?,?,?)").bind(id,JSON.stringify({id,title:String(d.title||"").slice(0,200),text:String(d.text||"").slice(0,8000),tags:Array.isArray(d.tags)?d.tags.filter(t=>typeof t==="string").slice(0,20):[],date:String(d.date||"").slice(0,10),type:"text"}),Date.now()));
  }
  if(queries.length>1000)return json({error:"Too many imported items"},413);
  for(let i=0;i<queries.length;i+=60)await db.batch(queries.slice(i,i+60));
