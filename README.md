@@ -1,3 +1,11 @@
+## Account and image-aware discovery (November 17, 2026)
+
+The site now has one website-only, cloud-synchronized **Wesley1337** owner profile (D1-backed follows, likes, saves, drafts and avatar). The chosen password is set via private Cloudflare secret **TM_ACCOUNT_PASSWORD** and the minimum accepted length is 8 characters. This is not Tumblr OAuth and no real Tumblr interactions are modified.
+
+New personalized Explore uses **Cloudflare Workers AI @cf/google/embeddinggemma-2**, 256-dim image + caption vectors, cosine similarity and MMR diversification, with a Find Similar images action. The temporary D1 similarity cache expires within 60 hours. The previous public Tumblr tag/reblog graph remains the fallback until setup and as a means of discovering fresh historical candidates.
+
+**Owner setup is required** for AI-assisted discovery: TM_DB (Cloudflare D1), TM_ACCOUNT_PASSWORD (encrypted secret), and AI (Workers AI binding). No separate Vectorize index or image API key is necessary for this first release. See [Visual discovery and account setup](docs/VISUAL_DISCOVERY.md).
+
 ## Wesley1337 private account and connected discovery (November 2026)
 
 **Account:** A single private pseudo-account, **Wesley1337**, can synchronize followed Tumblr blogs, local likes, saved posts, drafts and an uploaded picture across the iPhone web app and desktop site. It uses a signed secure cookie plus a Cloudflare D1 database. It does not connect to a real Tumblr account.
