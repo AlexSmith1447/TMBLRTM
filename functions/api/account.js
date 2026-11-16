@@ -1,7 +1,7 @@
 /**
  * One private, synchronized Tumblr-style profile for the existing Pages site.
  * REQUIREMENTS: Cloudflare Pages binding TM_DB (D1 database) and encrypted
- * environment secret TM_ACCOUNT_PASSWORD (16+ characters recommended).
+ * environment secret TM_ACCOUNT_PASSWORD (8+ characters; kept server-side).
  *
  * There is no connection to a real Tumblr account, and no registration of
  * public site visitors. Profile actions are protected by signed HttpOnly
@@ -15,7 +15,7 @@ const json=(data,status=200,extra={})=>new Response(JSON.stringify(data),{status
 const enc=new TextEncoder();
 const validID=id=>typeof id==="string"&&id.length>0&&id.length<=125&&!/[\x00-\x1f]/.test(id);
 const validBlog=v=>typeof v==="string"&&/^[a-z0-9_-]{1,64}$/.test(v);
-const secretOk=env=>typeof env?.TM_ACCOUNT_PASSWORD==="string"&&env.TM_ACCOUNT_PASSWORD.length>=12;
+const secretOk=env=>typeof env?.TM_ACCOUNT_PASSWORD==="string"&&env.TM_ACCOUNT_PASSWORD.length>=8;
 async function schema(db){
  await Promise.all([
   db.prepare("CREATE TABLE IF NOT EXISTS tm_profile (name TEXT PRIMARY KEY, avatar TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL DEFAULT 0)").run(),
