@@ -18,11 +18,14 @@ const validBlog=name=>/^[a-z0-9_-]{1,64}$/.test(name);
 // The visual recommender indexes only posts fetched through the official Tumblr
 // API. These calls require the private site account; no API key is sent to users.
 async function visualIndex(posts,signal){
- const candidates=[...new Map((posts||[]).filter(p=>p?.id&&(p.images||[]).length).map(p=>[String(p.id),p])).values()].slice(0,5);
- if(!candidates.length)return;
- const r=await fetch("/api/visual",{method:"POST",credentials:"same-origin",signal,
-  headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"index",posts:candidates})});
- if(!r.ok)throw Error("Visual indexing unavailable");
+ const candidates=[...new Map((posts||[]).filter(p=>p?.id&&(p.images||[]).length).map(p=>[String(p.id),p])).values()].slice(0,15);
+ for(let i=0;i<candidates.length;i+=5){
+  if(signal?.aborted)return;
+  const batch=candidates.slice(i,i+5);
+  const r=await fetch("/api/visual",{method:"POST",credentials:"same-origin",signal,
+   headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"index",posts:batch})});
+  if(!r.ok)throw Error("Visual indexing unavailable");
+ }
 }
 async function visualFind({date,seed="",rotation=0,signal}){
  const before=Math.floor(Date.parse(date+"T23:59:59Z")/1000)+1;
@@ -111,6 +114,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTa
  const [similarPosts,setSimilarPosts]=useState([]);
  const [similarLoading,setSimilarLoading]=useState(false);
  const visualVersion=useRef(0);
+ const newestDiscoveryBatch=useRef([]);
  const recentBefore=useRef(null);
  const request=useRef(null);
  const interests=useMemo(()=>tasteProfile(liked,saved,followed),[liked,saved,followed.join("|")]);
@@ -150,8 +154,8 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTa
  useEffect(()=>{
   if(!visualReady||!account?.status?.signedIn||!posts.length||sort==="recent")return;
   const controller=new AbortController();
-  const likedPosts=Object.values(liked||{}).filter(p=>p?.images?.length).slice(0,2);
-  const newPosts=posts.filter(p=>p?.images?.length).slice(0,5);
+  const likedPosts=Object.values(liked||{}).filter(p=>p?.images?.length).slice(0,3);
+  const newPosts=(newestDiscoveryBatch.current.length?newestDiscoveryBatch.current:posts).filter(p=>p?.images?.length).slice(0,15);
   const batch=[...new Map([...likedPosts,...newPosts].map(p=>[String(p.id),p])).values()].slice(0,5);
   if(!batch.length)return;
   visualIndex(batch,controller.signal)
@@ -219,6 +223,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTa
     setHasRecent(!!recentBefore.current&&recentBefore.current>earliest&&good.some(x=>x.hasMore));
    }
    const usable=recentRows.filter(p=>p.timestamp<=cutoff(date)&&p.timestamp>=earliest);
+   newestDiscoveryBatch.current=usable;
    setPosts(old=>merge(page===0?[]:old,usable));
  
    setSampled(old=>(page===0?0:old)+jobs.length);
