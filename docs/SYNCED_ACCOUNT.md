@@ -7,7 +7,7 @@ This is a website-only owner-controlled identity. It is not a real Tumblr login.
 1. Go to https://dash.cloudflare.com/ and open Workers & Pages > D1 SQL Database > Create database. Name it **tumblr-profile**.
 2. In Workers & Pages > TMBLRTM > Settings > Bindings > Add > D1 database, select the new database.
 3. Set its binding **Variable name** to exactly **TM_DB**. Save for Production.
-4. Under TMBLRTM > Settings > Variables and Secrets > Add, make an encrypted secret **TM_ACCOUNT_PASSWORD** with a unique, randomly generated password at least 16 characters long. Save for Production.
+4. Under TMBLRTM > Settings > Variables and Secrets > Add, make an encrypted secret **TM_ACCOUNT_PASSWORD** with a unique, randomly generated password at least 8 characters long. Save for Production.
 5. Redeploy the latest Production deployment. The first authenticated request automatically creates the profile tables; there is no SQL script to run.
 6. Visit https://tmblrtm.pages.dev/api/account?mode=status . You should see configured:true and signedIn:false before you log in.
 7. On https://tmblrtm.pages.dev/ open Account from the iPhone tab or click the desktop account profile. Enter your password and sign in. Sign in with the same password on the other device.
@@ -25,6 +25,8 @@ Do not share the owner password with anyone, put it in GitHub, or paste it into 
 - The app limits bad password attempts per hour. A strong password is essential because this is one private owner account, not a full managed login platform.
 - You can browse as a guest without logging in, but that activity stays on the device until imported.
 - Uploading an avatar does not post anything to Tumblr. Private drafts do not get published.
+
+For image-aware ranking, connect the additional AI binding described in [VISUAL_DISCOVERY.md](./VISUAL_DISCOVERY.md).
 
 ## Discovery in this release
 
