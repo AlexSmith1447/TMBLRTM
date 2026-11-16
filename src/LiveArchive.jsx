@@ -15,6 +15,23 @@ const formatMonth=m=>new Date(m+"-01T12:00:00Z").toLocaleDateString("en-US",{yea
 const avatar=name=>"https://api.tumblr.com/v2/blog/"+encodeURIComponent(name+".tumblr.com")+"/avatar/64";
 const merge=(a,b)=>{const m=new Map();for(const x of [...a,...b])m.set(x.id,x);return [...m.values()].sort((x,y)=>y.timestamp-x.timestamp)};
 const validBlog=name=>/^[a-z0-9_-]{1,64}$/.test(name);
+// The visual recommender indexes only posts fetched through the official Tumblr
+// API. These calls require the private site account; no API key is sent to users.
+async function visualIndex(posts,signal){
+ const candidates=[...new Map((posts||[]).filter(p=>p?.id&&(p.images||[]).length).map(p=>[String(p.id),p])).values()].slice(0,5);
+ if(!candidates.length)return;
+ const r=await fetch("/api/visual",{method:"POST",credentials:"same-origin",signal,
+  headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"index",posts:candidates})});
+ if(!r.ok)throw Error("Visual indexing unavailable");
+}
+async function visualFind({date,seed="",rotation=0,signal}){
+ const before=Math.floor(Date.parse(date+"T23:59:59Z")/1000)+1;
+ const params=new URLSearchParams({mode:"recommend",before:String(before),rotation:String(rotation),limit:"36"});
+ if(seed)params.set("seed",String(seed));
+ const r=await fetch("/api/visual?"+params,{credentials:"same-origin",signal,cache:"no-store"});
+ if(!r.ok)throw Error("Image discovery unavailable");
+ return r.json();
+}
 async function fetchPage({blog,tag,before,offset=0,limit=12,signal}){
  const url=new URLSearchParams({mode:blog?"blog":"tag",[blog?"blog":"tag"]:blog||tag,before:String(before),limit:String(limit),offset:String(offset)});
  const response=await fetch("/api/tumblr?"+url.toString(),{signal});
@@ -37,7 +54,7 @@ function PhotoGrid({post,onOpen}){
   </button>)}
  </div>;
 }
-function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
+function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog,onSimilar}){
  const [trailExpanded,setTrailExpanded]=useState(false);
  const [viewer,setViewer]=useState(null);
  const trail=Array.isArray(post.trail)?post.trail:[];
@@ -62,6 +79,7 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
    </div>}
    {post.tags?.length>0&&<div className="tt-post-tags">{post.tags.slice(0,15).map(t=><button onClick={()=>onTag(t)} key={t}>#{t.replace(/\s/g,"")}</button>)}</div>}
    <div className="tt-post-footer"><span>{(post.notes||0).toLocaleString()} notes</span><div>
+     {onSimilar&&post.images?.length>0&&<button onClick={()=>onSimilar(post)} title="Find visually similar posts" aria-label="Find similar images"><ImageIcon size={18}/></button>}
      <button className={saved?"marked":""} onClick={()=>onSave(post)} title="Bookmark locally" aria-label={saved?"Remove bookmark":"Bookmark"}><Bookmark size={17} fill={saved?"currentColor":"none"}/></button>
      {post.url&&<a href={post.url} title="Open original Tumblr post" target="_blank" rel="noopener noreferrer"><ArrowUpRight size={17}/></a>}
      <button className={liked?"hearted":""} onClick={()=>onLike(post)} title="Like locally" aria-label={liked?"Unlike":"Like"}><Heart size={20} fill={liked?"currentColor":"none"}/></button>
@@ -76,7 +94,7 @@ function PostCard({post,liked,saved,onLike,onSave,onTag,onBlog}){
  * IMPORTANT: /tagged only offers timestamp paging; there is no official "Top"
  * response. These are the top-ranked posts AMONG THE POSTS WE CAN SAMPLE.
  */
-function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog,onLike,onSave,mobileMode=false}){
+function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTag,onBlog,onLike,onSave,mobileMode=false}){
  const [sort,setSort]=useState("top");
  const [rotation,setRotation]=useState(0);
  const [page,setPage]=useState(0);
@@ -87,6 +105,12 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
  const [hasRecent,setHasRecent]=useState(true);
  const [sampled,setSampled]=useState(0);
  const [selected,setSelected]=useState([]);
+ const [visualReady,setVisualReady]=useState(false);
+ const [visualPosts,setVisualPosts]=useState([]);
+ const [similarTo,setSimilarTo]=useState(null);
+ const [similarPosts,setSimilarPosts]=useState([]);
+ const [similarLoading,setSimilarLoading]=useState(false);
+ const visualVersion=useRef(0);
  const recentBefore=useRef(null);
  const request=useRef(null);
  const interests=useMemo(()=>tasteProfile(liked,saved,followed),[liked,saved,followed.join("|")]);
@@ -96,9 +120,43 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
  const topicPlan=tag?[tag]:chooseGraphTopics(graph,rotation,4);
  const blogSuggestions=useMemo(()=>relatedBlogs(graph,followed,rotation,6),[graph,followed,rotation]);
  const earliest=oldestEraTimestamp(date,12);
- const ranked=useMemo(()=>rankDiscovered(posts,interests,{sort,tag,rotation}).filter(p=>p.date&&p.date<=date&&p.timestamp>=earliest),[posts,interests,sort,tag,rotation,date,earliest]);
+ const ranked=useMemo(()=>{
+  const sampled=rankDiscovered(posts,interests,{sort,tag,rotation}).filter(p=>p.date&&p.date<=date&&p.timestamp>=earliest);
+  if(tag||sort==="recent"||!visualReady||!visualPosts.length)return sampled;
+  const seen=new Set();
+  return [...visualPosts.filter(p=>p?.date&&p.date<=date),...sampled]
+   .filter(p=>{if(seen.has(String(p.id)))return false;seen.add(String(p.id));return true});
+ },[posts,interests,sort,tag,rotation,date,earliest,visualReady,visualPosts]);
+ const displayed=similarTo?similarPosts:ranked;
+ const profileKey=Object.keys(liked||{}).sort().join("|")+"::"+Object.keys(saved||{}).sort().join("|");
+ useEffect(()=>{
+  let active=true;
+  if(!account?.status?.signedIn){setVisualReady(false);setVisualPosts([]);return}
+  fetch("/api/visual?mode=status",{cache:"no-store",credentials:"same-origin"})
+   .then(r=>r.json()).then(data=>{if(active)setVisualReady(Boolean(data.configured))})
+   .catch(()=>{if(active)setVisualReady(false)});
+  return()=>{active=false};
+ },[account?.status?.signedIn]);
+ useEffect(()=>{
+  if(!visualReady||!account?.status?.signedIn||tag||sort==="recent")return;
+  const controller=new AbortController();
+  visualFind({date,rotation,signal:controller.signal}).then(data=>{
+   if(!controller.signal.aborted)setVisualPosts((data.items||[]).filter(p=>p?.id));
+  }).catch(()=>{});
+  return()=>controller.abort();
+ },[visualReady,account?.status?.signedIn,date,rotation,profileKey,tag,sort]);
+ const showSimilar=async post=>{
+  if(!visualReady||!account?.status?.signedIn)return;
+  const version=++visualVersion.current;
+  setSimilarTo(post);setSimilarPosts([]);setSimilarLoading(true);
+  try{
+   await visualIndex([post]);
+   const data=await visualFind({date,seed:post.id,rotation});
+   if(visualVersion.current===version)setSimilarPosts((data.items||[]).filter(p=>p.id!==post.id));
+  }catch{}finally{if(visualVersion.current===version)setSimilarLoading(false)}
+ };
  const pagesTotal=isExplore?4:3;
- useEffect(()=>{setSort("top");setPage(0);setRotation(0);setPosts([]);recentBefore.current=null},[tag,date]);
+ useEffect(()=>{setSort("top");setPage(0);setRotation(0);setPosts([]);setSimilarTo(null);setSimilarPosts([]);setVisualPosts([]);recentBefore.current=null},[tag,date]);
  const canMore=sort==="recent"?hasRecent:page<pagesTotal-1;
  const shuffle=()=>{setRotation(n=>n+1);setPage(0);setPosts([]);setSelected([])};
  const switchSort=next=>{if(next===sort)return;setSort(next);setPage(0);setPosts([]);recentBefore.current=null;setHasRecent(true);setSampled(0)};
@@ -147,6 +205,13 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
    }
    const usable=recentRows.filter(p=>p.timestamp<=cutoff(date)&&p.timestamp>=earliest);
    setPosts(old=>merge(page===0?[]:old,usable));
+   if(account?.status?.signedIn&&visualReady&&usable.length&&sort!=="recent"){
+    const batch=[...Object.values(liked||{}),...usable];
+    // Inference is asynchronous so the ordinary historical feed stays responsive.
+    visualIndex(batch,controller.signal).then(()=>visualFind({date,rotation,signal:controller.signal}))
+      .then(data=>{if(!controller.signal.aborted)setVisualPosts((data.items||[]).filter(p=>p?.id))})
+      .catch(()=>{});
+   }
    setSampled(old=>(page===0?0:old)+jobs.length);
    if(page===0&&tag)setSelected(topicPlan);
    if(bad.length)setPartial(good.length?bad.length+" source request(s) unavailable; showing what we found.":"");
@@ -185,10 +250,13 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,onTag,onBlog
   {configured===false&&<div className="tt-error"><AlertCircle size={16}/> Tumblr API is not configured.</div>}
   {error&&<div className="tt-error"><AlertCircle size={16}/>{error}<button onClick={shuffle}>Retry</button></div>}
   {partial&&<p className="tm-discover-partial">{partial}</p>}
-  {ranked.length>0&&<div className="tt-post-list">{ranked.map(post=><PostCard key={post.id} post={post} liked={!!liked[post.id]} saved={!!saved[post.id]} onLike={onLike} onSave={onSave} onTag={onTag} onBlog={onBlog}/>)}</div>}
-  {loading&&<div className="tt-loading"><Loader2 className="rotating" size={18}/><p>{page===0?"Finding posts from different months…":"Exploring more of the era…"}</p></div>}
-  {!loading&&ranked.length===0&&!error&&configured===true&&<div className="tt-empty"><Search size={26}/><strong>No accessible posts in this sample</strong><p>Tumblr does not always expose older tag results consistently. Try a different tag or explore more months.</p></div>}
-  {configured===true&&!loading&&canMore&&<button className="tt-load-more tm-discover-more" onClick={handleMore}><Plus size={15}/> {sort==="recent"?"Older posts":"Find more from this era"}</button>}
+  {similarTo&&<div className="tm-visual-context"><strong>Images similar to {similarTo.blog}'s post</strong><button type="button" onClick={()=>{visualVersion.current++;setSimilarTo(null);setSimilarPosts([])}}>Back to Explore</button></div>}
+  {similarLoading&&<div className="tt-loading"><Loader2 size={17} className="rotating"/><p>Finding similar images…</p></div>}
+  {similarTo&&!similarLoading&&!similarPosts.length&&<div className="tt-empty">Not enough comparable images have been indexed yet. Explore more posts first.</div>}
+  {displayed.length>0&&<div className="tt-post-list">{displayed.map(post=><PostCard key={post.id} post={post} liked={!!liked[post.id]} saved={!!saved[post.id]} onLike={onLike} onSave={onSave} onTag={onTag} onBlog={onBlog} onSimilar={visualReady?showSimilar:null}/>)}</div>}
+  {!similarTo&&loading&&<div className="tt-loading"><Loader2 className="rotating" size={18}/><p>{page===0?"Finding posts from different months…":"Exploring more of the era…"}</p></div>}
+  {!similarTo&&!loading&&ranked.length===0&&!error&&configured===true&&<div className="tt-empty"><Search size={26}/><strong>No accessible posts in this sample</strong><p>Tumblr does not always expose older tag results consistently. Try a different tag or explore more months.</p></div>}
+  {!similarTo&&configured===true&&!loading&&canMore&&<button className="tt-load-more tm-discover-more" onClick={handleMore}><Plus size={15}/> {sort==="recent"?"Older posts":"Find more from this era"}</button>}
   <p className="tm-discover-footnote">Top is an independent ranking based on current note counts and your interests, not Tumblr's original historical trending chart. Deleted or private posts may be missing.</p>
  </div>;
 }
@@ -311,7 +379,7 @@ export default function LiveArchive({date,tab,initialTag,initialBlog,onTag,onBlo
   if(failed.length)setError(good.length?"Some posts could not be loaded.":"Could not load more posts.");
   setMoreLoading(false);
  };
- if(specialDiscovery)return <section className={"tt-live tt-immersive"+(mobileMode?" tm-native-mobile":"")}><DiscoveryFeed tag={initialTag||""} date={date} configured={configured} liked={liked} saved={saved} followed={followed} onTag={onTag} onBlog={onBlog} onLike={like} onSave={save} mobileMode={mobileMode}/></section>;
+ if(specialDiscovery)return <section className={"tt-live tt-immersive"+(mobileMode?" tm-native-mobile":"")}><DiscoveryFeed tag={initialTag||""} date={date} configured={configured} liked={liked} saved={saved} followed={followed} account={account} onTag={onTag} onBlog={onBlog} onLike={like} onSave={save} mobileMode={mobileMode}/></section>;
  return <section className={"tt-live"+(immersive?" tt-immersive":"")+(mobileMode?" tm-native-mobile":"")+(isBlog?" tm-blog-feed theme-"+activeTheme:"")}>
   {isBlog&&<BlogHeader name={singleName} info={blogInfo} followed={followed.includes(singleName)} onToggle={onToggleFollow||(()=>{})} month={month} onMonth={setMonth} cutoffDate={date} onThemeChange={setActiveTheme}/>}
   {isDashboard&&names.length===0&&<FeedEmpty message="Follow some blogs using the sidebar, then their posts will appear here." icon={Users}/>}
