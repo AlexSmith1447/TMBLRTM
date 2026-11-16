@@ -145,6 +145,21 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTa
   }).catch(()=>{});
   return()=>controller.abort();
  },[visualReady,account?.status?.signedIn,date,rotation,profileKey,tag,sort]);
+ // Index as soon as both the owner session and API are ready, including
+ // when login happens *after* the historical Tumblr posts were fetched.
+ useEffect(()=>{
+  if(!visualReady||!account?.status?.signedIn||!posts.length||sort==="recent")return;
+  const controller=new AbortController();
+  const likedPosts=Object.values(liked||{}).filter(p=>p?.images?.length).slice(0,2);
+  const newPosts=posts.filter(p=>p?.images?.length).slice(0,5);
+  const batch=[...new Map([...likedPosts,...newPosts].map(p=>[String(p.id),p])).values()].slice(0,5);
+  if(!batch.length)return;
+  visualIndex(batch,controller.signal)
+   .then(()=>visualFind({date,rotation,signal:controller.signal}))
+   .then(data=>{if(!controller.signal.aborted)setVisualPosts((data.items||[]).filter(p=>p?.id))})
+   .catch(()=>{});
+  return()=>controller.abort();
+ },[visualReady,account?.status?.signedIn,posts,profileKey,date,sort,rotation]);
  const showSimilar=async post=>{
   if(!visualReady||!account?.status?.signedIn)return;
   const version=++visualVersion.current;
@@ -205,13 +220,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTa
    }
    const usable=recentRows.filter(p=>p.timestamp<=cutoff(date)&&p.timestamp>=earliest);
    setPosts(old=>merge(page===0?[]:old,usable));
-   if(account?.status?.signedIn&&visualReady&&usable.length&&sort!=="recent"){
-    const batch=[...Object.values(liked||{}),...usable];
-    // Inference is asynchronous so the ordinary historical feed stays responsive.
-    visualIndex(batch,controller.signal).then(()=>visualFind({date,rotation,signal:controller.signal}))
-      .then(data=>{if(!controller.signal.aborted)setVisualPosts((data.items||[]).filter(p=>p?.id))})
-      .catch(()=>{});
-   }
+ 
    setSampled(old=>(page===0?0:old)+jobs.length);
    if(page===0&&tag)setSelected(topicPlan);
    if(bad.length)setPartial(good.length?bad.length+" source request(s) unavailable; showing what we found.":"");
