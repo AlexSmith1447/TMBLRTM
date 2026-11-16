@@ -54,6 +54,10 @@ async function authorized(req,secret){
   return payload.account===NAME&&Number(payload.exp)>Math.floor(Date.now()/1000);
  }catch{return false}
 }
+export async function isAccountAuthorized(request,env){
+ if(!secretOk(env))return false;
+ return authorized(request,env.TM_ACCOUNT_PASSWORD);
+}
 const cookie=(session,maxAge=MONTH)=>COOKIE+"="+session+"; Path=/; Max-Age="+maxAge+"; Secure; HttpOnly; SameSite=Lax";
 const sameOrigin=req=>{
  const source=req.headers.get("Origin");
