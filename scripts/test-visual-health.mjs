@@ -56,8 +56,8 @@ try{
  globalThis.fetch=async request=>{
   assert.match(String(request),/64\.media\.tumblr\.com/);
   mediaCalls++;
-  return new Response(new Uint8Array([137,80,78,71,13,10,26,10,1]),{
-   status:200,headers:{"content-type":"image/png","content-length":"9"}
+  return new Response(new Uint8Array([137,80,78,71,13,10,26,10,1,1,2,3]),{
+   status:200,headers:{"content-type":"image/png","content-length":"12"}
   });
  };
  const unauth=await checkVisual({request:new Request(base+"/api/visual?mode=diagnostics"),env});
