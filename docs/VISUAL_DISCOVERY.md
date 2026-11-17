@@ -79,6 +79,35 @@ Sources:
 - https://developers.cloudflare.com/workers-ai/platform/pricing/
 - https://developers.cloudflare.com/workers-ai/models/embeddinggemma-2/
 
+## November 17 fix: previously all records were caption-only
+
+The site was selecting full-resolution Tumblr originals for embedding and rejecting
+anything over 1.25 MB. Some photos also use GIF, AVIF or redirecting media links.
+This could leave the index with valid *text* embeddings and zero actual images
+even though Workers AI was functioning.
+
+The importer now preserves thumbnail/alternative URLs returned by Tumblr's
+official legacy photo alt_sizes and NPF media[] fields. The original source
+image remains unchanged for normal display. The private Worker tries actual
+smaller variants before the original, streams responses with a 2.1 MB cap,
+follows only redirects to trusted Tumblr media hosts, and reports concrete
+failure categories (HTTP status, unsupported GIF, oversized image, timeouts).
+
+Old caption-only records are eligible for a one-time upgrade when the new
+thumbnail metadata is discovered, rather than triggering unlimited retries.
+
+**To verify a real fix:** after Pages has redeployed, visit Explore while
+signed in, load a few pages of real posts containing static photos, then use
+Account > Test AI. The diagnostic should say Live image embedding: Working
+and show >0 actual image embeddings once image indexing succeeds. If it does
+not, copy the **Download diagnosis** counts; e.g., "http 403: 3" indicates
+a different upstream CDN issue than "animated gif: 3". The dashboard remains
+usable via caption-based fallback even if photos can't be embedded.
+
+This is verified by source-code inspections and mocked regression tests, NOT
+by a live Cloudflare Workers AI+Tumblr image inference on the owner's account.
+The test control is the direct production check.
+
 ## How Explore uses images
 
 1. The existing official Tumblr API key (TUMBLR_API_KEY) retrieves real surviving public posts; no invented images.
