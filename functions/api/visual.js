@@ -64,10 +64,10 @@ async function embed(env,post){
  if(uri){
   try{
    const result=await env.AI.run(VISUAL_MODEL,{
-    messages:[{role:"user",content:[
+    messages:[[{role:"user",content:[
      {type:"text",text:describe(post).slice(0,480)},
      {type:"image_url",image_url:{url:uri}}
-    ]}],dimensions:VISUAL_DIMENSIONS
+    ]}]],dimensions:VISUAL_DIMENSIONS
    });
    const vector=extract(result);if(vector)return {vector,visual:true};
   }catch{}
