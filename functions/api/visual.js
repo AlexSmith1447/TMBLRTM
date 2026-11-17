@@ -134,6 +134,7 @@ async function recommendations(db,query){
  const ids=(profile.results||[]).map(x=>String(x.item_id));
  const anchors=ids.map(id=>byID.get(id)?.vector).filter(Boolean).slice(0,12);
  const seedVector=byID.get(seed)?.vector||null;
+ if(seed&&!seedVector)return output({items:[],indexed:items.length,reason:"seed_not_indexed",ready:true});
  const excluded=new Set(ids);if(seed)excluded.add(seed);
  const results=scoreCandidates(items,{
   anchorVectors:seed?[]:anchors,seedVector,before,
