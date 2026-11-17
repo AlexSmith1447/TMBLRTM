@@ -108,6 +108,32 @@ This is verified by source-code inspections and mocked regression tests, NOT
 by a live Cloudflare Workers AI+Tumblr image inference on the owner's account.
 The test control is the direct production check.
 
+## Repair existing caption-only posts after image inference starts working
+
+If Account > Test AI says **Model inference: Working** and
+**Live image embedding: Working**, but reports **0 real images / N total**,
+the inference path is functional; the older D1 vectors may still be
+caption-only. The diagnostics request does not write its probe vector
+to the index. A successful standalone probe is not the same thing as a
+persisted embedding.
+
+With the owner account signed in, press **Account > Upgrade** under
+**Upgrade cached images**. The button sends a same-origin, authenticated
+POST to /api/visual action=upgrade. It repairs up to four old
+caption-only records on each press, saving successful 256-dimensional
+image embeddings in D1 while retaining the original caption vectors
+for posts whose images still fail. Repair attempts consume the same
+120-attempts-per-day budget as normal indexing and each failed post
+is held for 12 hours before another attempt is allowed, protecting
+Workers AI usage from repeated clicks.
+
+The panel returns the number attempted, successfully upgraded, and
+total real image embeddings. After a successful upgrade, refresh
+Explore or Account > Test AI for the new counters. A nonzero count
+verifies actual visual vectors exist; it does not prove the
+recommendations are relevant, which still depends on the accessible
+pool of historical Tumblr posts.
+
 ## How Explore uses images
 
 1. The existing official Tumblr API key (TUMBLR_API_KEY) retrieves real surviving public posts; no invented images.
