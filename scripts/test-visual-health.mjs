@@ -17,7 +17,7 @@ class FakeD1 {
    },
    async all(){
     if(query.includes("SELECT payload FROM tm_visual_posts"))
-     return {results:[{payload:JSON.stringify({images:["https://64.media.tumblr.com/example.jpg"]})}]};
+     return {results:[{payload:JSON.stringify({images:["https://64.media.tumblr.com/large-original.jpg"],imageCandidates:["https://64.media.tumblr.com/animated.gif","https://64.media.tumblr.com/resized.jpg"]})}]};
     return {results:[]};
    }
   };
@@ -37,7 +37,7 @@ const env={
   if(Array.isArray(payload.messages)){
    assert.ok(Array.isArray(payload.messages[0]));
    assert.equal(payload.messages[0][0].content[1].type,"image_url");
-   assert.match(payload.messages[0][0].content[1].image_url.url,/^data:image\/png;base64,/);
+   assert.match(payload.messages[0][0].content[1].image_url.url,/^data:image\/jpeg;base64,/);
    return {data:[{embedding:output1}]};
   }
   throw Error("Invalid request");
@@ -56,8 +56,12 @@ try{
  globalThis.fetch=async request=>{
   assert.match(String(request),/64\.media\.tumblr\.com/);
   mediaCalls++;
-  return new Response(new Uint8Array([137,80,78,71,13,10,26,10,1,1,2,3]),{
-   status:200,headers:{"content-type":"image/png","content-length":"12"}
+  if(String(request).includes("animated.gif"))return new Response(new Uint8Array([71,73,70,56,57,97]),{
+   status:200,headers:{"content-type":"image/gif","content-length":"6"}
+  });
+  assert.ok(String(request).includes("resized.jpg"),"Must try an actual Tumblr smaller variant before full-size originals");
+  return new Response(new Uint8Array([255,216,255,224,74,70,73,70,1,1,2,3]),{
+   status:200,headers:{"content-type":"image/jpeg","content-length":"12"}
   });
  };
  const unauth=await checkVisual({request:new Request(base+"/api/visual?mode=diagnostics"),env});
@@ -74,6 +78,6 @@ try{
  assert.equal(data.imageEmbedding.ok,true);
  assert.equal(data.imageEmbedding.dimension,256);
  assert.equal(modelCalls,2);
- assert.equal(mediaCalls,1);
+ assert.equal(mediaCalls,2);
  console.log("Workers AI owner-only diagnostics test passed: account session, text and image model requests");
 }finally{globalThis.fetch=originalFetch}
