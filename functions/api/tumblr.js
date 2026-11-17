@@ -11,6 +11,25 @@ const listPhotos=post=>{
  const old=(Array.isArray(post.photos)?post.photos:[]).map(x=>x.original_size||x.alt_sizes?.[0]).filter(Boolean);
  return [...new Set([...media,...old].map(x=>safeUrl(x.url)).filter(Boolean))].slice(0,12);
 };
+// Prefer Tumblr's real smaller CDN variants for AI embeddings. Keep the
+// full-resolution images[] untouched for the historical image viewer.
+// NPF media[] and legacy photos[].alt_sizes are published by Tumblr itself.
+const embeddingVariants=post=>{
+ const block=(Array.isArray(post.content)?post.content:[]).find(x=>x.type==="image");
+ const variants=[
+  ...(Array.isArray(block?.media)?block.media:[]),
+  ...((Array.isArray(post.photos)?post.photos:[])[0]?.alt_sizes||[])
+ ];
+ const unique=new Set();
+ return variants.filter(v=>v&&typeof v==="object").sort((a,b)=>{
+  const w=v=>Math.max(1,Number(v.width)||1);
+  const priority=v=>Math.abs(Math.log2(w(v)/540))+(w(v)>1200?4:0);
+  return priority(a)-priority(b);
+ }).map(v=>safeUrl(v.url)).filter(url=>{
+  if(!url||unique.has(url))return false;
+  unique.add(url);return true;
+ }).slice(0,4);
+};
 function trailFrom(post){
  const npf=Array.isArray(post.trail)?post.trail:[];
  const items=npf.slice(-8).map(x=>({
@@ -41,7 +60,7 @@ function normalize(post){
   text:clean(blocksText||post.body||post.caption||post.description||post.summary||(type==="quote"?"":post.text)||"",15000),
   quote:type==="quote"?clean(post.text||post.quote||"",2000):"",
   quoteSource:type==="quote"?clean(post.source||"",500):"",
-  images:listPhotos(post),trail,
+  images:listPhotos(post),imageCandidates:embeddingVariants(post),trail,
   tags:Array.isArray(post.tags)?post.tags.filter(t=>typeof t==="string").map(t=>t.slice(0,90)).slice(0,30):[],
   notes:Number(post.note_count)||0,
   url:safeUrl(post.post_url),reblogFrom:post.reblogged_from_name||trail.at(-1)?.blog||null,
