@@ -85,6 +85,7 @@ function sanitizePost(input){
  return {id,blog,date:text(input.date,10),timestamp:Number(input.timestamp)||0,
   title:text(input.title,200),text:text(input.text,2200),type:text(input.type,22),quote:text(input.quote,1000),
   quoteSource:text(input.quoteSource,400),images,
+  imageCandidates:Array.isArray(input.imageCandidates)?input.imageCandidates.filter(v=>typeof v==="string"&&/^https:\/\//i.test(v)).slice(0,4).map(v=>v.slice(0,1900)):[],
   tags:Array.isArray(input.tags)?input.tags.filter(t=>typeof t==="string").slice(0,24).map(v=>v.slice(0,80)):[],
   notes:Number(input.notes)||0,url:typeof input.url==="string"&&/^https:\/\//.test(input.url)?input.url.slice(0,2000):null,
   reblogFrom:text(input.reblogFrom,80)};
