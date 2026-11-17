@@ -233,7 +233,7 @@ async function diagnostics(db,env){
   outputState.textEmbedding={ok:false,reason:String(error?.message||"Workers AI rejected the test").slice(0,220)};
  }
  const rows=await db.prepare(
-  "SELECT payload FROM tm_visual_posts WHERE expires_at>? ORDER BY visual DESC,expires_at DESC LIMIT 8"
+  "SELECT payload FROM tm_visual_posts WHERE expires_at>? ORDER BY visual DESC,expires_at DESC LIMIT 4"
  ).bind(now()).all();
  let usableImage=null,previewCount=0;
  const failures=[];
