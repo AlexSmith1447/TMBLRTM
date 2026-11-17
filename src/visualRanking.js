@@ -38,6 +38,8 @@ export function safePost(raw){
  return {id,blog,timestamp:stamp,date:new Date(stamp*1000).toISOString().slice(0,10),
   title:String(raw.title||"").slice(0,180),text:String(raw.text||"").slice(0,1100),
   type:String(raw.type||"text").slice(0,22),images,
+  imageCandidates:(Array.isArray(raw.imageCandidates)?raw.imageCandidates:[])
+   .filter(u=>typeof u==="string"&&/^https:\/\//i.test(u)).slice(0,4).map(u=>u.slice(0,1900)),
   tags:(Array.isArray(raw.tags)?raw.tags:[]).filter(t=>typeof t==="string").slice(0,18).map(t=>t.slice(0,70)),
   notes:clamp(Number(raw.notes)||0,0,1e9),
   quote:String(raw.quote||"").slice(0,800),quoteSource:String(raw.quoteSource||"").slice(0,200),
