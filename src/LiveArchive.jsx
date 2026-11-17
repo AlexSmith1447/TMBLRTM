@@ -156,7 +156,7 @@ function DiscoveryFeed({tag="",date,configured,liked,saved,followed,account,onTa
   const controller=new AbortController();
   const likedPosts=Object.values(liked||{}).filter(p=>p?.images?.length).slice(0,3);
   const newPosts=(newestDiscoveryBatch.current.length?newestDiscoveryBatch.current:posts).filter(p=>p?.images?.length).slice(0,15);
-  const batch=[...new Map([...likedPosts,...newPosts].map(p=>[String(p.id),p])).values()].slice(0,5);
+  const batch=[...new Map([...likedPosts,...newPosts].map(p=>[String(p.id),p])).values()].slice(0,15);
   if(!batch.length)return;
   visualIndex(batch,controller.signal)
    .then(()=>visualFind({date,rotation,signal:controller.signal}))
