@@ -36,6 +36,8 @@ export default function AccountPanel({account,compact=false}){
  const [imageError,setImageError]=useState("");
  const [aiDiagnostic,setAiDiagnostic]=useState(null);
  const [checkingAI,setCheckingAI]=useState(false);
+ const [repairingAI,setRepairingAI]=useState(false);
+ const [repairResult,setRepairResult]=useState(null);
  const file=useRef(null);
  const photo=profile.avatar?
   <img src={profile.avatar} alt="" className="tm-account-photo"/>:
@@ -54,6 +56,20 @@ export default function AccountPanel({account,compact=false}){
    setAiDiagnostic(data);
   }catch(e){setAiDiagnostic({error:e.message||"Couldn't test the AI model"})}
   finally{setCheckingAI(false)}
+ }
+ async function upgradeImages(){
+  if(repairingAI)return;
+  setRepairingAI(true);setRepairResult(null);
+  try{
+   const response=await fetch("/api/visual",{method:"POST",credentials:"same-origin",
+    headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"upgrade"})});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||"Image indexing repair unavailable");
+   setRepairResult(data);
+   if(aiDiagnostic)setAiDiagnostic(previous=>previous?{...previous,indexed:data.indexed??previous.indexed,
+    imageEmbeddings:data.imageEmbeddings??previous.imageEmbeddings}:previous);
+  }catch(e){setRepairResult({error:e.message||"Image indexing repair failed"})}
+  finally{setRepairingAI(false)}
  }
  async function selectAvatar(event){
   const picked=event.target.files?.[0];if(!picked)return;
@@ -97,6 +113,21 @@ export default function AccountPanel({account,compact=false}){
       <div className="tm-account-setting"><div><strong>Image recommendations</strong><small>Verify real image processing and check the temporary image index.</small></div>
         <button type="button" onClick={testImageAI} disabled={checkingAI} className="tm-account-button"><RefreshCw size={15}/> {checkingAI?"Checking…":"Test AI"}</button>
       </div>
+      <div className="tm-account-setting"><div><strong>Upgrade cached images</strong>
+        <small>Replace old caption-only recommendations with real image embeddings, four at a time.</small></div>
+        <button type="button" onClick={upgradeImages} disabled={repairingAI||checkingAI}
+         className="tm-account-button"><ImageIcon size={15}/> {repairingAI?"Upgrading…":"Upgrade"}</button>
+      </div>
+      {repairResult&&<div className="tm-account-ai-result" role="status">
+        {repairResult.error?<p>{repairResult.error}</p>:<>
+          <strong>{repairResult.message}</strong>
+          <div><strong>Images upgraded this batch</strong><span>{repairResult.upgraded||0} / {repairResult.attempted||0}</span></div>
+          <div><strong>Visual image embeddings stored</strong><span>{repairResult.imageEmbeddings??0} / {repairResult.indexed??0} posts</span></div>
+          {repairResult.failures&&Object.keys(repairResult.failures).length>0&&
+            <p>Details: {Object.entries(repairResult.failures).map(([reason,n])=>reason.replaceAll("_"," ")+": "+n).join(" · ")}</p>}
+          <small>Upgrades count toward your Workers AI free allowance. Repeat only if more old posts need repair.</small>
+        </>}
+      </div>}
       {aiDiagnostic&&<div className="tm-account-ai-result" role="status">
         {aiDiagnostic.error?<strong>{aiDiagnostic.error}</strong>:<>
          <div><strong>Model inference</strong><span>{aiDiagnostic.textEmbedding?.ok?"Working":"Not working"}</span></div>
