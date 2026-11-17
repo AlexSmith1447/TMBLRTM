@@ -34,6 +34,8 @@ export default function AccountPanel({account,compact=false}){
  const [password,setPassword]=useState("");
  const [message,setMessage]=useState("");
  const [imageError,setImageError]=useState("");
+ const [aiDiagnostic,setAiDiagnostic]=useState(null);
+ const [checkingAI,setCheckingAI]=useState(false);
  const file=useRef(null);
  const photo=profile.avatar?
   <img src={profile.avatar} alt="" className="tm-account-photo"/>:
@@ -41,6 +43,17 @@ export default function AccountPanel({account,compact=false}){
  async function submit(e){
   e.preventDefault();setMessage("");
   if(await login(password)){setPassword("");setMessage("Signed in — your profile is now shared across devices.")}
+ }
+ async function testImageAI(){
+  if(checkingAI)return;
+  setCheckingAI(true);setAiDiagnostic(null);
+  try{
+   const response=await fetch("/api/visual?mode=diagnostics",{credentials:"same-origin",cache:"no-store"});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||"AI diagnostics unavailable");
+   setAiDiagnostic(data);
+  }catch(e){setAiDiagnostic({error:e.message||"Couldn't test the AI model"})}
+  finally{setCheckingAI(false)}
  }
  async function selectAvatar(event){
   const picked=event.target.files?.[0];if(!picked)return;
@@ -81,6 +94,19 @@ export default function AccountPanel({account,compact=false}){
       <div className="tm-account-setting"><div><strong>Import previous local activity</strong><small>Bring over likes, bookmarks and follows from this device; existing cloud items are preserved</small></div>
        <button onClick={async()=>{setMessage("");if(await importLocal())setMessage("Previous device activity imported.")}} disabled={pending} className="tm-account-button"><Upload size={14}/> Import</button>
       </div>
+      <div className="tm-account-setting"><div><strong>Image recommendations</strong><small>Verify real image processing and check the temporary image index.</small></div>
+        <button type="button" onClick={testImageAI} disabled={checkingAI} className="tm-account-button"><RefreshCw size={15}/> {checkingAI?"Checking…":"Test AI"}</button>
+      </div>
+      {aiDiagnostic&&<div className="tm-account-ai-result" role="status">
+        {aiDiagnostic.error?<strong>{aiDiagnostic.error}</strong>:<>
+         <div><strong>Model inference</strong><span>{aiDiagnostic.textEmbedding?.ok?"Working":"Not working"}</span></div>
+         <div><strong>Live image embedding</strong><span>{aiDiagnostic.imageEmbedding?.ok?"Working":aiDiagnostic.imageEmbeddings?"Not verified":"Not yet available"}</span></div>
+         <div><strong>Indexed images</strong><span>{aiDiagnostic.imageEmbeddings||0} real images / {aiDiagnostic.indexed||0} total</span></div>
+         {!aiDiagnostic.textEmbedding?.ok&&<p>{aiDiagnostic.textEmbedding?.reason||"Worker model inference failed."}</p>}
+         {!aiDiagnostic.imageEmbedding?.ok&&<p>{aiDiagnostic.imageEmbedding?.reason||"No valid photo available."}</p>}
+         <small>Checks use Workers AI and may count toward your daily free allocation. Results verify inference, not recommendation quality.</small>
+        </>}
+      </div>}
       <button className="tm-account-signout" onClick={logout} disabled={pending}><LogOut size={15}/> Sign out</button>
     </div>}
    {message&&<p className="tm-account-success"><Check size={14}/>{message}</p>}
