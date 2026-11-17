@@ -47,6 +47,38 @@ Cloudflare documentation:
 
 Open https://tmblrtm.pages.dev/ → Account → Sign in using your owner password. Optional: Import previous local activity from each device to merge previous follows, likes and bookmarks.
 
+## Verify real AI inference (not merely bindings)
+
+The public /api/visual?mode=status route only verifies Cloudflare bindings.
+It now also reports **indexed** and **imageEmbeddings**: these counters are
+zero when there are no successful temporary embeddings and/or no actual
+image embeddings, respectively. An indexed *text-only* fallback is not counted
+as a real image embedding.
+
+To verify the actual model, sign into **Wesley1337**, open Account and press
+**Test AI**. The test reports:
+- Whether an actual EmbeddingGemma 2 text inference returned valid 256-D vectors
+- Whether an actual image + text inference returned a valid image embedding
+- Number of non-expired D1 records and how many were created from real images
+- A brief error reason when either inference fails, without disclosing keys
+
+The test requires a photo already retrieved and temporarily indexed through
+Explore. If it reports "Not yet available" for image inference, browse some
+image posts in Explore, then retry. The test may consume one or two model
+inference calls on your Workers AI allocation. It does not prove the *quality*
+of suggested posts; evaluate that using clicks, likes and recommendation
+relevance once the index is nonempty.
+
+Cloudflare documentation on November 17, 2026: Workers AI Free includes
+10,000 Neurons per day across model use, resetting at 00:00 UTC. Going over
+the free allocation on Workers Free causes operations to fail (not a
+postpaid surprise bill); Workers Paid may charge beyond free allocation.
+EmbeddingGemma 2 is not listed among paid-only models. Cloudflare lists
+the model's unit price at $0.0017 per million input tokens.
+Sources:
+- https://developers.cloudflare.com/workers-ai/platform/pricing/
+- https://developers.cloudflare.com/workers-ai/models/embeddinggemma-2/
+
 ## How Explore uses images
 
 1. The existing official Tumblr API key (TUMBLR_API_KEY) retrieves real surviving public posts; no invented images.
