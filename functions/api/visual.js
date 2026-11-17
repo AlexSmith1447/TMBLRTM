@@ -33,20 +33,71 @@ function safeMedia(url){
   return u.toString();
  }catch{return null}
 }
+// Safely fetch only Tumblr-owned media. Inspect real response headers so we can
+// tell unsupported animation, oversized originals and HTTP errors apart.
+const MAX_IMAGE_BYTES=2100000;
 async function imageData(url){
- const safe=safeMedia(url);if(!safe)return null;
+ const safe=safeMedia(url);
+ if(!safe)return {uri:null,reason:"unsupported_host"};
+ let next=safe;
  try{
-  const res=await fetch(safe,{redirect:"error",signal:AbortSignal.timeout(7000)});
-  if(!res.ok)return null;
-  const type=(res.headers.get("content-type")||"").split(";")[0].trim();
-  if(!["image/jpeg","image/png","image/webp"].includes(type))return null;
-  const length=Number(res.headers.get("content-length")||0);
-  if(length>1250000)return null;
-  const bytes=new Uint8Array(await res.arrayBuffer());
-  if(!bytes.length||bytes.length>1250000)return null;
-  let str="";for(let i=0;i<bytes.length;i+=8192)str+=String.fromCharCode(...bytes.subarray(i,i+8192));
-  return "data:"+type+";base64,"+btoa(str);
- }catch{return null}
+  for(let redirects=0;redirects<=2;redirects++){
+   const res=await fetch(next,{redirect:"manual",headers:{Accept:"image/jpeg,image/png,image/webp,image/*;q=0.7"},signal:AbortSignal.timeout(6000)});
+   if(res.status>=300&&res.status<400){
+    const location=res.headers.get("location");
+    if(!location)return {uri:null,reason:"redirect_without_location"};
+    const trusted=safeMedia(new URL(location,next).toString());
+    if(!trusted)return {uri:null,reason:"redirect_outside_tumblr"};
+    next=trusted;continue;
+   }
+   if(!res.ok)return {uri:null,reason:"http_"+res.status};
+   const raw=(res.headers.get("content-type")||"").split(";")[0].trim().toLowerCase();
+   const mime=raw==="image/jpg"?"image/jpeg":raw;
+   if(!["image/jpeg","image/png","image/webp"].includes(mime))
+    return {uri:null,reason:mime==="image/gif"?"animated_gif":mime==="image/avif"?"avif_unavailable":"unsupported_mime"};
+   const length=Number(res.headers.get("content-length")||0);
+   if(length>MAX_IMAGE_BYTES)return {uri:null,reason:"too_large"};
+   const chunks=[],reader=res.body?.getReader();
+   let lengthRead=0;
+   if(reader){
+    try{
+     while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      lengthRead+=value?.byteLength||0;
+      if(lengthRead>MAX_IMAGE_BYTES){await reader.cancel();return {uri:null,reason:"too_large"}}
+      if(value?.length)chunks.push(value);
+     }
+    }finally{try{reader.releaseLock()}catch{}}
+   }else{
+    const body=new Uint8Array(await res.arrayBuffer());
+    lengthRead=body.byteLength;
+    if(lengthRead>MAX_IMAGE_BYTES)return {uri:null,reason:"too_large"};
+    chunks.push(body);
+   }
+   if(lengthRead<10)return {uri:null,reason:"empty_image"};
+   const binary=new Uint8Array(lengthRead);
+   let offset=0;
+   for(const chunk of chunks){binary.set(chunk,offset);offset+=chunk.byteLength}
+   // Give Workers AI the real bytes; no image content is persisted in D1.
+   let str="";for(let i=0;i<binary.length;i+=8192)str+=String.fromCharCode(...binary.subarray(i,i+8192));
+   return {uri:"data:"+mime+";base64,"+btoa(str),reason:null,bytes:lengthRead};
+  }
+  return {uri:null,reason:"too_many_redirects"};
+ }catch(error){
+  return {uri:null,reason:error?.name==="TimeoutError"||error?.name==="AbortError"?"timeout":"network_error"};
+ }
+}
+async function loadPostImage(post){
+ const sources=[...(post.imageCandidates||[]),...(post.images||[]).slice(0,1)];
+ const urls=[...new Set(sources)].slice(0,4);
+ const reasons=[];
+ for(const url of urls){
+  const result=await imageData(url);
+  if(result.uri)return {...result,reasons,attempts:reasons.length+1};
+  reasons.push(result.reason||"unknown");
+ }
+ return {uri:null,reason:reasons[0]||"no_image_url",reasons,attempts:reasons.length};
 }
 function extract(result){
  const candidate=result?.data?.[0]?.embedding||result?.data?.[0]?.values||result?.data?.[0]||
@@ -60,13 +111,13 @@ function describe(post){
  return "title: "+(post.title||"none")+" | text: "+(raw||"Tumblr photo");
 }
 async function embed(env,post){
- const uri=await imageData(post.images?.[0]);
- if(uri){
+ const media=await loadPostImage(post);
+ if(media.uri){
   try{
    const result=await env.AI.run(VISUAL_MODEL,{
     messages:[[{role:"user",content:[
      {type:"text",text:describe(post).slice(0,480)},
-     {type:"image_url",image_url:{url:uri}}
+     {type:"image_url",image_url:{url:media.uri}}
     ]}]],dimensions:VISUAL_DIMENSIONS
    });
    const vector=extract(result);if(vector)return {vector,visual:true};
@@ -77,7 +128,7 @@ async function embed(env,post){
  // an image embedding.
  const result=await env.AI.run(VISUAL_MODEL,{input:[describe(post)],dimensions:VISUAL_DIMENSIONS});
  const vector=extract(result);
- return vector?{vector,visual:false}:null;
+ return vector?{vector,visual:false,mediaIssue:media.reason||"model_rejected_image"}:null;
 }
 async function cleanup(db){
  await db.prepare("DELETE FROM tm_visual_posts WHERE expires_at<=?").bind(now()).run();
@@ -92,9 +143,19 @@ async function indexBatch(db,env,posts){
  await prepare(db);await cleanup(db);
  const all=posts.map(safePost).filter(Boolean).slice(0,MAX_POSTS);
  if(!all.length)return {indexed:0,skipped:0,total:0,visual:0};
- const query=await db.prepare("SELECT id FROM tm_visual_posts WHERE id IN ("+all.map(()=>"?").join(",")+")").bind(...all.map(p=>p.id)).all();
- const old=new Set((query.results||[]).map(r=>r.id));
- const missing=all.filter(p=>!old.has(p.id));
+ const query=await db.prepare("SELECT id,visual,payload FROM tm_visual_posts WHERE id IN ("+all.map(()=>"?").join(",")+")").bind(...all.map(p=>p.id)).all();
+ const known=new Map((query.results||[]).map(r=>[String(r.id),r]));
+ const missing=all.filter(post=>{
+  const previous=known.get(post.id);
+  if(!previous)return true;
+  if(Number(previous.visual))return false;
+  // Upgrade old text-only records exactly once when actual smaller
+  // Tumblr CDN variants become available. Don't burn AI usage on every load.
+  try{
+   const cached=JSON.parse(previous.payload);
+   return !!post.imageCandidates?.length&&!cached?.imageCandidates?.length;
+  }catch{return !!post.imageCandidates?.length}
+ });
  const budget=await remaining(db);
  if(!budget.left)return {indexed:0,skipped:all.length,total:all.length,visual:0,rateLimited:true};
  const target=missing.slice(0,budget.left);
@@ -115,7 +176,9 @@ async function indexBatch(db,env,posts){
    JSON.stringify(x.post),JSON.stringify(x.vector),x.visual?1:0));
   await db.batch(records);
  }
- return {indexed:collected.length,visual:collected.filter(x=>x.visual).length,skipped:all.length-collected.length,total:all.length};
+ return {indexed:collected.length,visual:collected.filter(x=>x.visual).length,
+  fallbackReasons:collected.filter(x=>!x.visual).reduce((counts,x)=>{const reason=x.mediaIssue||"unknown";counts[reason]=(counts[reason]||0)+1;return counts},{}),
+  skipped:all.length-collected.length,total:all.length};
 }
 async function recommendations(db,query){
  await prepare(db);await cleanup(db);
@@ -173,19 +236,22 @@ async function diagnostics(db,env){
   "SELECT payload FROM tm_visual_posts WHERE expires_at>? ORDER BY visual DESC,expires_at DESC LIMIT 8"
  ).bind(now()).all();
  let usableImage=null,previewCount=0;
+ const failures=[];
  for(const row of rows.results||[]){
   try{
    const p=JSON.parse(row.payload);
    if(!p?.images?.[0])continue;
    previewCount++;
-   const uri=await imageData(p.images[0]);
-   if(uri){usableImage=uri;break}
+   const media=await loadPostImage(p);
+   if(media.uri){usableImage=media.uri;break}
+   failures.push(...(media.reasons||[]));
   }catch{}
  }
  if(!usableImage){
   outputState.imageEmbedding={ok:false,reason:previewCount?
-   "Indexed image URLs could not be downloaded as an eligible JPEG, PNG or WebP under 1.25 MB":
-   "Browse Explore and allow some photographic posts to be indexed, then test again"};
+   "Couldn't fetch a compatible image from the sampled Tumblr posts":
+   "Browse Explore and allow photographic posts to be indexed, then test again",
+   triedPosts:previewCount,failures:failures.reduce((map,reason)=>{map[reason]=(map[reason]||0)+1;return map},{})};
   return output(outputState);
  }
  try{
@@ -194,7 +260,7 @@ async function diagnostics(db,env){
    {type:"image_url",image_url:{url:usableImage}}
   ]}]],dimensions:VISUAL_DIMENSIONS});
   const vector=extract(response);
-  outputState.imageEmbedding=vector?{ok:true,dimension:vector.length}:
+  outputState.imageEmbedding=vector?{ok:true,dimension:vector.length,source:"tumblr_photo"}:
    {ok:false,reason:"The image request returned no valid 256-dimensional embedding"};
  }catch(error){
   outputState.imageEmbedding={ok:false,reason:String(error?.message||"Multimodal inference failed").slice(0,220)};
