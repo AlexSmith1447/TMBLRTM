@@ -21,6 +21,7 @@ async function prepare(db){
  await db.prepare("CREATE TABLE IF NOT EXISTS tm_visual_posts (id TEXT PRIMARY KEY, blog TEXT NOT NULL, timestamp INTEGER NOT NULL, expires_at INTEGER NOT NULL, payload TEXT NOT NULL, vector TEXT NOT NULL, visual INTEGER NOT NULL DEFAULT 0)").run();
  await db.prepare("CREATE INDEX IF NOT EXISTS idx_tm_visual_expires ON tm_visual_posts(expires_at)").run();
  await db.prepare("CREATE TABLE IF NOT EXISTS tm_visual_budget (day TEXT PRIMARY KEY, indexed INTEGER NOT NULL DEFAULT 0)").run();
+ await db.prepare("CREATE TABLE IF NOT EXISTS tm_visual_repair_attempts (id TEXT PRIMARY KEY, attempted_at INTEGER NOT NULL)").run();
 }
 const sameOrigin=req=>{const origin=req.headers.get("Origin");return !!origin&&origin===new URL(req.url).origin};
 function safeMedia(url){
@@ -180,6 +181,66 @@ async function indexBatch(db,env,posts){
   fallbackReasons:collected.filter(x=>!x.visual).reduce((counts,x)=>{const reason=x.mediaIssue||"unknown";counts[reason]=(counts[reason]||0)+1;return counts},{}),
   skipped:all.length-collected.length,total:all.length};
 }
+// Explicit owner-triggered backfill for records created before the smaller
+// Tumblr image variant fix. A successful inference is saved as a *real* visual
+// embedding. Failed attempts leave the old caption vector intact. Throttle
+// retries so repeatedly pressing the button won't exhaust the free AI tier.
+const REPAIR_BATCH=4,REPAIR_COOLDOWN=12*60*60;
+async function repairImageIndex(db,env){
+ await prepare(db);await cleanup(db);
+ const quota=await remaining(db),time=now();
+ if(!quota.left)return output({ok:true,attempted:0,upgraded:0,rateLimited:true,
+  message:"Daily image indexing budget reached. Try again after the UTC reset."});
+ const rows=await db.prepare(
+  "SELECT p.id,p.payload FROM tm_visual_posts p "+
+  "LEFT JOIN tm_visual_repair_attempts a ON a.id=p.id "+
+  "WHERE p.visual=0 AND p.expires_at>? AND (a.id IS NULL OR a.attempted_at<?) "+
+  "ORDER BY p.expires_at DESC LIMIT ?"
+ ).bind(time,time-REPAIR_COOLDOWN,Math.min(REPAIR_BATCH,quota.left)).all();
+ const posts=(rows.results||[]).map(row=>{
+  try{return {id:String(row.id),post:safePost(JSON.parse(row.payload))}}catch{return null}
+ }).filter(row=>row?.post&&(row.post.images||[]).length);
+ if(!posts.length){
+  const counts=await db.prepare(
+   "SELECT COUNT(*) AS total,COALESCE(SUM(CASE WHEN visual=1 THEN 1 ELSE 0 END),0) AS images FROM tm_visual_posts WHERE expires_at>?"
+  ).bind(time).first();
+  return output({ok:true,attempted:0,upgraded:0,indexed:Number(counts?.total)||0,
+   imageEmbeddings:Number(counts?.images)||0,
+   message:"No eligible caption-only images remain for an immediate upgrade."});
+ }
+ // Reserve inference capacity first, even if a CDN request or model call fails.
+ await db.prepare("UPDATE tm_visual_budget SET indexed=indexed+? WHERE day=?").bind(posts.length,quota.day).run();
+ const reports=[],updates=[];
+ for(const {id,post} of posts){
+  await db.prepare(
+   "INSERT INTO tm_visual_repair_attempts(id,attempted_at) VALUES(?,?) "+
+   "ON CONFLICT(id) DO UPDATE SET attempted_at=excluded.attempted_at"
+  ).bind(id,now()).run();
+  try{
+   const result=await embed(env,post);
+   if(result?.visual){
+    updates.push(db.prepare(
+     "UPDATE tm_visual_posts SET vector=?,visual=1,expires_at=? WHERE id=? AND visual=0"
+    ).bind(JSON.stringify(result.vector),now()+RETENTION,id));
+    reports.push({ok:true});
+   }else reports.push({ok:false,reason:result?.mediaIssue||"inference_failed"});
+  }catch(error){
+   reports.push({ok:false,reason:"model_or_network_error"});
+  }
+ }
+ if(updates.length)await db.batch(updates);
+ const counts=await db.prepare(
+  "SELECT COUNT(*) AS total,COALESCE(SUM(CASE WHEN visual=1 THEN 1 ELSE 0 END),0) AS images FROM tm_visual_posts WHERE expires_at>?"
+ ).bind(now()).first();
+ const failures=reports.filter(x=>!x.ok).reduce((acc,x)=>{
+  acc[x.reason]=(acc[x.reason]||0)+1;return acc
+ },{});
+ return output({ok:true,attempted:reports.length,upgraded:reports.filter(x=>x.ok).length,
+  failed:reports.length-updates.length,failures,
+  indexed:Number(counts?.total)||0,imageEmbeddings:Number(counts?.images)||0,
+  message:updates.length?"Real image embeddings saved to the recommendation index.":
+   "No images upgraded in this batch. Read failure reasons."});
+}
 async function recommendations(db,query){
  await prepare(db);await cleanup(db);
  const before=Math.min(now()+1,Number(query.get("before")||now()+1));
@@ -297,6 +358,8 @@ export async function onRequestPost({request,env}){
  if(!/^application\/json/.test(request.headers.get("Content-Type")||""))return output({error:"Invalid content type"},415);
  if(Number(request.headers.get("Content-Length")||0)>40000)return output({error:"Request too large"},413);
  let body;try{const raw=await request.text();if(raw.length>40000)throw Error();body=JSON.parse(raw)}catch{return output({error:"Invalid input"},400)}
+ if(body?.action==="upgrade")try{return await repairImageIndex(env.TM_DB,env)}
+  catch{return output({error:"Index upgrade temporarily unavailable"},503)}
  if(body?.action!=="index"||!Array.isArray(body.posts)||body.posts.length>MAX_POSTS)return output({error:"Invalid discovery batch"},400);
  try{return output({ok:true,...await indexBatch(env.TM_DB,env,body.posts)})}
  catch{return output({error:"Image embedding index unavailable"},503)}
