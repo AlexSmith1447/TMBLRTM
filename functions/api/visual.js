@@ -144,6 +144,67 @@ async function recommendations(db,query){
   visualCount:items.filter(x=>x.visual).length,
   method:"embeddinggemma-2-cosine-mmr",ready:true});
 }
+/**
+ * Owner-only on-demand health check. Does not alter the historical post index,
+ * does not pretend configured bindings prove inference, and runs only when
+ * explicitly requested from the account panel. May use 1-2 AI inferences.
+ */
+async function diagnostics(db,env){
+ await prepare(db);
+ const counts=await db.prepare(
+  "SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN visual=1 THEN 1 ELSE 0 END),0) AS image_count FROM tm_visual_posts WHERE expires_at>?"
+ ).bind(now()).first();
+ const outputState={configured:true,model:VISUAL_MODEL,dimensions:VISUAL_DIMENSIONS,
+  indexed:Number(counts?.total)||0,imageEmbeddings:Number(counts?.image_count)||0,
+  textEmbedding:{ok:false},imageEmbedding:{ok:false,reason:"No indexed Tumblr image available for a live test"}};
+ try{
+  const response=await env.AI.run(VISUAL_MODEL,{input:[
+   "task: clustering | query: a watercolor portrait of a black cat",
+   "task: clustering | query: a picture of a dark colored cat"
+  ],dimensions:VISUAL_DIMENSIONS});
+  const first=normalizedVector(response?.data?.[0]?.embedding||response?.data?.[0]?.values||response?.data?.[0]);
+  const second=normalizedVector(response?.data?.[1]?.embedding||response?.data?.[1]?.values||response?.data?.[1]);
+  outputState.textEmbedding=first&&second?{ok:true,dimension:first.length,similarity:Math.round(similarityForProbe(first,second)*1000)/1000}:
+   {ok:false,reason:"The model response did not contain valid 256-dimensional vectors"};
+ }catch(error){
+  outputState.textEmbedding={ok:false,reason:String(error?.message||"Workers AI rejected the test").slice(0,220)};
+ }
+ const rows=await db.prepare(
+  "SELECT payload FROM tm_visual_posts WHERE expires_at>? ORDER BY visual DESC,expires_at DESC LIMIT 8"
+ ).bind(now()).all();
+ let usableImage=null,previewCount=0;
+ for(const row of rows.results||[]){
+  try{
+   const p=JSON.parse(row.payload);
+   if(!p?.images?.[0])continue;
+   previewCount++;
+   const uri=await imageData(p.images[0]);
+   if(uri){usableImage=uri;break}
+  }catch{}
+ }
+ if(!usableImage){
+  outputState.imageEmbedding={ok:false,reason:previewCount?
+   "Indexed image URLs could not be downloaded as an eligible JPEG, PNG or WebP under 1.25 MB":
+   "Browse Explore and allow some photographic posts to be indexed, then test again"};
+  return output(outputState);
+ }
+ try{
+  const response=await env.AI.run(VISUAL_MODEL,{messages:[[{role:"user",content:[
+   {type:"text",text:"Historical Tumblr image similarity test"},
+   {type:"image_url",image_url:{url:usableImage}}
+  ]}]],dimensions:VISUAL_DIMENSIONS});
+  const vector=extract(response);
+  outputState.imageEmbedding=vector?{ok:true,dimension:vector.length}:
+   {ok:false,reason:"The image request returned no valid 256-dimensional embedding"};
+ }catch(error){
+  outputState.imageEmbedding={ok:false,reason:String(error?.message||"Multimodal inference failed").slice(0,220)};
+ }
+ return output(outputState);
+}
+function similarityForProbe(a,b){
+ let dot=0;for(let i=0;i<a.length;i++)dot+=a[i]*b[i];
+ return Math.max(-1,Math.min(1,dot));
+}
 export async function onRequestGet({request,env}){
  const params=new URL(request.url).searchParams,mode=params.get("mode")||"recommend";
  if(mode==="status"){
@@ -152,12 +213,15 @@ export async function onRequestGet({request,env}){
    await prepare(env.TM_DB);
    const r=await env.TM_DB.prepare("SELECT COUNT(*) AS total FROM tm_visual_posts WHERE expires_at>?").bind(now()).first();
    status.indexed=Number(r?.total)||0;
+   const visual=await env.TM_DB.prepare("SELECT COUNT(*) AS total FROM tm_visual_posts WHERE expires_at>? AND visual=1").bind(now()).first();
+   status.imageEmbeddings=Number(visual?.total)||0;
   }catch{status.indexed=0}
   return output(status);
  }
  if(!appReady(env))return output({error:"Visual discovery requires the D1 TM_DB and Workers AI AI bindings",code:"not_configured"},503);
  if(!await isAccountAuthorized(request,env))return output({error:"Sign in to use personalized visual discovery"},401);
- try{return await recommendations(env.TM_DB,params)}
+ try{if(mode==="diagnostics")return await diagnostics(env.TM_DB,env);
+  return await recommendations(env.TM_DB,params)}
  catch{return output({error:"Visual discovery index temporarily unavailable"},503)}
 }
 export async function onRequestPost({request,env}){
