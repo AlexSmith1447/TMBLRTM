@@ -104,6 +104,9 @@ export default function AccountPanel({account,compact=false}){
          <div><strong>Indexed images</strong><span>{aiDiagnostic.imageEmbeddings||0} real images / {aiDiagnostic.indexed||0} total</span></div>
          {!aiDiagnostic.textEmbedding?.ok&&<p>{aiDiagnostic.textEmbedding?.reason||"Worker model inference failed."}</p>}
          {!aiDiagnostic.imageEmbedding?.ok&&<p>{aiDiagnostic.imageEmbedding?.reason||"No valid photo available."}</p>}
+         {aiDiagnostic.imageEmbedding?.failures&&Object.keys(aiDiagnostic.imageEmbedding.failures).length>0&&
+          <p>Download diagnosis: {Object.entries(aiDiagnostic.imageEmbedding.failures)
+           .sort((a,b)=>b[1]-a[1]).map(([type,n])=>type.replaceAll("_"," ")+": "+n).join(" · ")}</p>}
          <small>Checks use Workers AI and may count toward your daily free allocation. Results verify inference, not recommendation quality.</small>
         </>}
       </div>}
